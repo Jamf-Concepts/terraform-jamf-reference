@@ -126,13 +126,13 @@ Configure a platform profile pointing at the same gateway and platform
 environment you configured for Terraform:
 
 ```bash
-jamf-cli platform setup
+jamf-cli platform setup --profile-name ref-jamfpro-starter
 ```
 
 Follow the prompts to enter your gateway URL, environment ID, and OAuth2
-credentials.
-This profile becomes your default, so commands below don't need `-p`. If you
-later add a second profile, pass `-p <profile>` to pick between them.
+credentials. The `--profile-name` flag saves them under their own profile, so
+they stay separate from any profile you already use. Every jamf-cli command in
+this tutorial passes `-p ref-jamfpro-starter` to select it.
 
 ### 3.6 Install jamformer
 
@@ -490,7 +490,7 @@ terraform state rm jamfplatform_pro_category.engineering
 ```
 
 Then add an import block in `imports.tf` pointing to the new ID (find it with
-`jamf-cli pro categories list -o table`), and apply:
+`jamf-cli pro categories list -o table -p ref-jamfpro-starter`), and apply:
 
 ```bash
 terraform apply -parallelism=1
@@ -526,16 +526,16 @@ that exists in Jamf Pro outside of Terraform. Use whichever approach you prefer:
   Terraform is in the picture:
 
 ```bash
-echo '{"name":"Finance","priority":9}' | jamf-cli pro categories create
+echo '{"name":"Finance","priority":9}' | jamf-cli pro categories create -p ref-jamfpro-starter
 
-echo '{"name":"Inventory Update","scriptContents":"#!/bin/bash\necho recon","priority":"AFTER"}' | jamf-cli pro scripts create
+echo '{"name":"Inventory Update","scriptContents":"#!/bin/bash\necho recon","priority":"AFTER"}' | jamf-cli pro scripts create -p ref-jamfpro-starter
 ```
 
 Then find their numeric IDs:
 
 ```bash
-jamf-cli pro categories list -o table
-jamf-cli pro scripts list -o table
+jamf-cli pro categories list -o table -p ref-jamfpro-starter
+jamf-cli pro scripts list -o table -p ref-jamfpro-starter
 ```
 
 Note the `id` value for each. You use them in the import blocks.
