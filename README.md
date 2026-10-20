@@ -13,25 +13,7 @@ structure.
 
 ---
 
-## Contents
-
-- [Learning outcomes](#learning-outcomes)
-- [What you'll build](#what-youll-build)
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-- [Step 1: Device Groups](#step-1-device-groups)
-- [Step 2: Software Update Blueprint](#step-2-software-update-blueprint)
-- [Step 3: Safari Restrictions Blueprint](#step-3-safari-restrictions-blueprint)
-- [Step 4: Compliance Benchmark](#step-4-compliance-benchmark)
-- [Drift: when the Platform API and Terraform disagree](#drift-when-the-platform-api-and-terraform-disagree)
-- [Importing existing resources](#importing-existing-resources)
-- [Discovering resources with jamformer](#discovering-resources-with-jamformer)
-- [Cleaning up](#cleaning-up)
-- [What's next](#whats-next)
-
----
-
-## Learning outcomes
+## 1. Learning outcomes
 
 By the end of this session you will be able to:
 
@@ -50,7 +32,7 @@ By the end of this session you will be able to:
 - Use jamformer to generate Terraform configuration from an existing tenant at
   scale
 
-## What you'll build
+## 2. What you'll build
 
 | File | Resource | Teaches |
 | --- | --- | --- |
@@ -61,7 +43,7 @@ By the end of this session you will be able to:
 
 ---
 
-## Prerequisites
+## 3. Prerequisites
 
 - A Jamf sandbox tenant. **Do not use production**
 - Git (see below)
@@ -71,7 +53,7 @@ By the end of this session you will be able to:
 - jamf-cli (see below)
 - jamformer (see below)
 
-### Installing git
+### 3.1 Installing git
 
 macOS does not always ship git out of the box. Check with `git --version`. If
 missing, install via Homebrew:
@@ -80,7 +62,7 @@ missing, install via Homebrew:
 brew install git
 ```
 
-### Installing Terraform
+### 3.2 Installing Terraform
 
 On macOS, install it with Homebrew:
 
@@ -93,7 +75,7 @@ terraform -version
 For other platforms, see
 [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install).
 
-### Recommended editor
+### 3.3 Recommended editor
 
 [Visual Studio Code](https://code.visualstudio.com) with the
 [HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform)
@@ -101,7 +83,7 @@ gives you syntax highlighting, auto-complete, and inline documentation for
 resource attributes. It is optional, and editing `.tf` files is harder without
 it.
 
-### Create Platform API credentials
+### 3.4 Create Platform API credentials
 
 The Platform API provider authenticates via OAuth2 using an **integration**
 you create in **Jamf Account** at [account.jamf.com](https://account.jamf.com).
@@ -141,7 +123,7 @@ for the Terraform provider.
 - `https://eu.api.jamfcloud.com` (EU)
 - `https://apac.api.jamfcloud.com` (APAC)
 
-### Install and configure jamf-cli
+### 3.5 Install and configure jamf-cli
 
 You use [jamf-cli](https://github.com/Jamf-Concepts/jamf-cli) during the
 import exercise to create unmanaged resources and look up their UUIDs. Install
@@ -162,7 +144,7 @@ Follow the prompts to enter your gateway URL, environment ID, and OAuth2
 credentials. Choose a memorable profile name when it asks, because you pass that
 name to every jamf-cli command with `-p <profile>`.
 
-### Install jamformer
+### 3.6 Install jamformer
 
 [jamformer](https://github.com/Jamf-Concepts/jamformer) reads an existing Jamf
 tenant and generates Terraform configuration from it. For the Platform provider,
@@ -175,16 +157,18 @@ brew install Jamf-Concepts/tap/jamformer
 
 ---
 
-## Setup
+## 4. Setup
 
-### Clone
+### 4.1 Clone
 
 ```bash
 git clone --branch ref-jamfplatform-starter --single-branch https://github.com/Jamf-Concepts/terraform-jamf-reference.git
 cd terraform-jamf-reference
 ```
 
-### Configure credentials
+This downloads only the starter branch of the repository into a new `terraform-jamf-reference` folder. The `cd` command moves you into it.
+
+### 4.2 Configure credentials
 
 Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way, so this builds the habit.
 
@@ -223,7 +207,7 @@ export TF_VAR_jamfplatform_client_id TF_VAR_jamfplatform_client_secret
 
 The variables last only for the current terminal. In a new terminal, run all three commands again. If you skip this, Terraform prompts you for each missing value.
 
-### Initialise Terraform
+### 4.3 Initialise Terraform
 
 ```bash
 terraform init
@@ -252,7 +236,7 @@ Terraform has been successfully initialized!
 
 ---
 
-## Step 1: Device Groups
+## 5. Device Groups
 
 Device groups are the targeting mechanism for both blueprints and compliance
 benchmarks. Any Platform resource that scopes to devices does so through a
@@ -316,7 +300,7 @@ enrolled Mac running macOS 14.0 or later appears in the group.
 
 ---
 
-## Step 2: Software Update Blueprint
+## 6. Software Update Blueprint
 
 Blueprints are the primary configuration resource in the Jamf Platform API.
 A blueprint declares a desired state and deploys it to device groups using
@@ -385,7 +369,7 @@ appears in the Jamf UI scoped to **Test Machines**.
 
 ---
 
-## Step 3: Safari Restrictions Blueprint
+## 7. Safari Restrictions Blueprint
 
 This step introduces `apple_declarations`, the component that delivers any
 Apple DDM declaration through a blueprint. Each declaration has a `channel`, a
@@ -468,7 +452,7 @@ appears in the Jamf UI scoped to **Test Machines**.
 
 ---
 
-## Step 4: Compliance Benchmark
+## 8. Compliance Benchmark
 
 A compliance benchmark applies security rules from a baseline to a device
 group, then either monitors compliance or enforces it. Jamf ships a range of
@@ -476,7 +460,7 @@ baselines. This step introduces **data sources**, which read existing data from
 an API without Terraform managing the result. The compliance rules live in Jamf,
 and Terraform reads them.
 
-### Discover available baselines
+### 8.1 Discover available baselines
 
 A benchmark starts from a named baseline. The
 `jamfplatform_cbengine_baselines` data source lists the ones your tenant offers.
@@ -511,7 +495,7 @@ available_baselines = [
 Note the `baseline_id` values. You use one in the next section. Remove the data
 source and output block from `compliance_benchmarks.tf` before continuing.
 
-### Inspect the baseline
+### 8.2 Inspect the baseline
 
 With a baseline ID in hand, inspect its rules before creating the benchmark.
 Replace the contents of `compliance_benchmarks.tf` with:
@@ -555,7 +539,7 @@ terraform output -json cis_lvl1_rules | jq -r '.[]' > cis_lvl1_rules.txt
 Review the list. It is the full set of rules the benchmark will manage. Remove
 the `output` block from `compliance_benchmarks.tf` before the next step.
 
-### Create the benchmark
+### 8.3 Create the benchmark
 
 From the list you inspected, pick the rules relevant to your organisation.
 Remove the `output` block from `compliance_benchmarks.tf`, then add the
@@ -617,7 +601,7 @@ Benchmarks.
 
 ---
 
-## Drift: when the Platform API and Terraform disagree
+## 9. Drift: when the Platform API and Terraform disagree
 
 Running `terraform plan` compares the HCL against the live state of each
 resource. Two situations surface diffs: you update the HCL to a new desired
@@ -625,7 +609,7 @@ state, or someone changes a resource in the Jamf UI or through the Platform API
 without Terraform. Terraform shows what will change in both cases, and the HCL
 stays the source of truth.
 
-### Change 1: updating desired state in HCL
+### 9.1 Updating desired state in HCL
 
 In `blueprints.tf`, change `automatic_install_security_updates` from
 `"AlwaysOn"` to `"AlwaysOff"`:
@@ -662,7 +646,7 @@ every apply, not configuration drift. Read the `software_update_settings` diff
 nested inside `component_blocks`. Change the value back to `"AlwaysOn"` and
 apply to see the reverse diff.
 
-### Change 2: modifying a payload setting
+### 9.2 Modifying a payload setting
 
 In the Jamf UI, edit the **Safari Restrictions** blueprint and
 re-enable private browsing.
@@ -678,7 +662,7 @@ HCL-declared values. The next apply overwrites your UI change.
 
 ---
 
-## Importing existing resources
+## 10. Importing existing resources
 
 Import brings a resource that already exists in the Platform API under Terraform
 management without recreating it. Use it for a device group, blueprint or
@@ -733,7 +717,7 @@ jamf-cli pro blueprints list -o table
 
 Note the `ID` value for each. You use them in the import blocks.
 
-### Import 1: a device group
+### 10.1 Importing a device group
 
 Open `imports.tf` and uncomment the device group block, filling in the UUID:
 
@@ -784,7 +768,7 @@ terraform plan
 
 A clean plan means the device group is under Terraform management.
 
-### Import 2: a blueprint
+### 10.2 Importing a blueprint
 
 Uncomment the blueprint block in `imports.tf`, filling in the UUID:
 
@@ -836,20 +820,20 @@ terraform plan
 
 ---
 
-## Discovering resources with jamformer
+## 11. Discovering resources with jamformer
 
 The import workflow above handles one or two resources by hand. It does not
 scale to a tenant holding dozens of blueprints and device groups. jamformer
 reads the whole tenant and generates Terraform configuration in one pass.
 
-### How jamformer works with the Platform provider
+### 11.1 How jamformer works with the Platform provider
 
 For Jamf Pro resources, jamformer calls the Jamf Pro API. For Jamf Platform
 resources it runs `terraform query` against your tenant, which drives the
 provider's built-in list resources. Terraform 1.14 introduced that command,
 which is why this project requires it.
 
-### Running jamformer
+### 11.2 Running jamformer
 
 Create a few more resources in your sandbox through the Jamf UI: a device
 group, a blueprint and a compliance benchmark. Then run jamformer against the
@@ -868,7 +852,7 @@ To see available resource types for the Platform provider:
 jamformer -list-resources -provider jamfplatform
 ```
 
-### What to look for in the output
+### 11.3 What to look for in the output
 
 - **Per-resource-type files** (`device_groups.tf`, `blueprints.tf`,
   `compliance_benchmarks.tf`), following the same naming convention as this
@@ -901,7 +885,7 @@ export into a structured project is a copy rather than a rewrite.
 
 ---
 
-## Cleaning up
+## 12. Cleaning up
 
 To remove everything Terraform created in your sandbox:
 
@@ -916,7 +900,7 @@ Then delete the integration in [account.jamf.com](https://account.jamf.com) unde
 
 ---
 
-## What's next
+## 13. What's next
 
 - **`ref-jamfpro-starter` branch**, the companion starter for the
   `deploymenttheory/jamfpro` provider. It covers categories, scripts, computer
