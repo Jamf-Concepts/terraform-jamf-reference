@@ -78,7 +78,6 @@ brew install git
 On macOS, the recommended approach is Homebrew:
 
 ```bash
-brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
 terraform -version
 ```
@@ -109,7 +108,7 @@ The Jamf Platform Terraform provider authenticates via OAuth2 using an
    checkbox per action:
 
    | Category | Permission | Actions |
-   |---|---|---|
+   | --- | --- | --- |
    | Organizational context | Categories | Create, Read, Update, Delete |
    | Deployment | Scripts | Create, Read, Update, Delete |
    | Deployment | Policies | Create, Read, Update, Delete |
