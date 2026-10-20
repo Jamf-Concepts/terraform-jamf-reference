@@ -137,12 +137,13 @@ Configure a platform profile pointing at the same gateway and platform
 environment you configured for Terraform:
 
 ```bash
-jamf-cli platform setup
+jamf-cli platform setup --profile-name ref-jamfplatform-starter
 ```
 
 Follow the prompts to enter your gateway URL, environment ID, and OAuth2
-credentials. Choose a memorable profile name when it asks, because you pass that
-name to every jamf-cli command with `-p <profile>`.
+credentials. The `--profile-name` flag saves them under their own profile, so
+they stay separate from any profile you already use. Every jamf-cli command in
+this tutorial passes `-p ref-jamfplatform-starter` to select it.
 
 ### 3.6 Install jamformer
 
@@ -675,8 +676,8 @@ API and generates the HCL for you.
 **Before you start:** create two unmanaged resources to simulate configuration
 that exists outside Terraform.
 
-> If you ran `jamf-cli platform setup` during prerequisites, that profile is the
-> default, so the commands below need no `-p` flag.
+> The commands below use the `ref-jamfplatform-starter` profile you created during
+> prerequisites.
 
 **Device group.** A criteria-based smart group needs JSON input for the
 `criteria` array. Write the payload to a temp file, then create it:
@@ -701,7 +702,7 @@ cat > /tmp/import_group.json << 'EOF'
   ]
 }
 EOF
-jamf-cli pro platform-device-groups create --file /tmp/import_group.json
+jamf-cli pro platform-device-groups create --file /tmp/import_group.json -p ref-jamfplatform-starter
 ```
 
 **Blueprint.** Create this one in the Jamf UI: add a blueprint named
@@ -711,8 +712,8 @@ created.
 Then find their UUIDs:
 
 ```bash
-jamf-cli pro platform-device-groups list -o table
-jamf-cli pro blueprints list -o table
+jamf-cli pro platform-device-groups list -o table -p ref-jamfplatform-starter
+jamf-cli pro blueprints list -o table -p ref-jamfplatform-starter
 ```
 
 Note the `ID` value for each. You use them in the import blocks.
