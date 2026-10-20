@@ -170,8 +170,8 @@ brew install Jamf-Concepts/tap/jamformer
 ### Clone
 
 ```bash
-git clone --branch ref-jamfpro-starter --single-branch https://github.com/Jamf-Concepts/terraform-jamf-platform.git
-cd terraform-jamf-platform
+git clone --branch ref-jamfpro-starter --single-branch https://github.com/Jamf-Concepts/terraform-jamf-reference.git
+cd terraform-jamf-reference
 ```
 
 ### Configure credentials
