@@ -1,4 +1,4 @@
-# Supply credentials in terraform.tfvars. See Prerequisites in README.md.
+# base_url and environment_id come from terraform.tfvars. client_id and client_secret come from TF_VAR_ environment variables. See README.md.
 
 provider "jamfplatform" {
   base_url       = var.jamfplatform_base_url

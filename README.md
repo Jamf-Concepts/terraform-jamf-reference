@@ -176,29 +176,42 @@ cd terraform-jamf-reference
 
 ### Configure credentials
 
+Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way, so this builds the habit.
+
+Copy the example file:
+
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Open `terraform.tfvars` and fill in your values:
+Open `terraform.tfvars` and fill in the two configuration values:
 
 ```hcl
 jamfplatform_base_url       = "https://us.api.jamfcloud.com"
 jamfplatform_environment_id = "your-environment-uuid"
-jamfplatform_client_id      = "your-client-id"
-jamfplatform_client_secret  = "your-client-secret"
 ```
 
 `terraform.tfvars` is gitignored, so git will not commit it.
 
-Or export credentials as environment variables:
+Terraform reads any environment variable named `TF_VAR_<name>` as the value of the variable `<name>`. Set the client ID and secret with `read -s`, which waits for input, prints nothing as you paste, and keeps the value out of your shell history.
+
+Run each command on its own, paste the value, and press Enter. The terminal shows nothing while you paste.
 
 ```bash
-export TF_VAR_jamfplatform_base_url="https://us.api.jamfcloud.com"
-export TF_VAR_jamfplatform_environment_id="your-environment-uuid"
-export TF_VAR_jamfplatform_client_id="..."
-export TF_VAR_jamfplatform_client_secret="..."
+read -s TF_VAR_jamfplatform_client_id
 ```
+
+```bash
+read -s TF_VAR_jamfplatform_client_secret
+```
+
+Then export both so Terraform can see them:
+
+```bash
+export TF_VAR_jamfplatform_client_id TF_VAR_jamfplatform_client_secret
+```
+
+The variables last only for the current terminal. In a new terminal, run all three commands again. If you skip this, Terraform prompts you for each missing value.
 
 ### Initialise Terraform
 

@@ -4,6 +4,5 @@ jamfplatform_base_url = ""
 # Your Jamf platform environment UUID
 jamfplatform_environment_id = ""
 
-# OAuth2 API client credentials. See Prerequisites in README.md for setup steps.
-jamfplatform_client_id     = ""
-jamfplatform_client_secret = ""
+# Client ID and secret are not set here. Export them as TF_VAR_ environment
+# variables. See Configure credentials in README.md.
