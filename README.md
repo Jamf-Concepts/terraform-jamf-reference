@@ -142,8 +142,10 @@ jamf-cli platform setup --profile-name ref-jamfplatform-starter
 
 Follow the prompts to enter your gateway URL, environment ID, and OAuth2
 credentials. The `--profile-name` flag saves them under their own profile, so
-they stay separate from any profile you already use. Every jamf-cli command in
-this tutorial passes `-p ref-jamfplatform-starter` to select it.
+setup does not overwrite one you already have. Setup does make the new profile
+your default. If you already use jamf-cli, restore your previous default after
+the tutorial with `jamf-cli config set-default <your-profile>`. Every jamf-cli
+command here passes `-p ref-jamfplatform-starter`, so it works whichever profile is the default.
 
 ### 3.6 Install jamformer
 
