@@ -13,25 +13,7 @@ multi-environment structure.
 
 ---
 
-## Contents
-
-- [Learning outcomes](#learning-outcomes)
-- [What you'll build](#what-youll-build)
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-- [Step 1: Categories](#step-1-categories)
-- [Step 2: Scripts](#step-2-scripts)
-- [Step 3: Static Computer Groups](#step-3-static-computer-groups)
-- [Step 4: Policies](#step-4-policies)
-- [Drift: when Jamf Pro and Terraform disagree](#drift-when-jamf-pro-and-terraform-disagree)
-- [Importing existing resources](#importing-existing-resources)
-- [Discovering resources with jamformer](#discovering-resources-with-jamformer)
-- [Cleaning up](#cleaning-up)
-- [What's next](#whats-next)
-
----
-
-## Learning outcomes
+## 1. Learning outcomes
 
 By the end of this session you will be able to:
 
@@ -43,7 +25,7 @@ By the end of this session you will be able to:
 - Import existing Jamf Pro resources into Terraform management using `import` blocks
 - Use jamformer to generate Terraform configuration from an existing instance at scale
 
-## What you'll build
+## 2. What you'll build
 
 | File | Resource | Teaches |
 | --- | --- | --- |
@@ -54,7 +36,7 @@ By the end of this session you will be able to:
 
 ---
 
-## Prerequisites
+## 3. Prerequisites
 
 - A Jamf Pro sandbox instance. **Do not use production**
 - Git (see below)
@@ -64,7 +46,7 @@ By the end of this session you will be able to:
 - jamformer (see below)
 - Platform API credentials from Jamf Account (see below)
 
-### Installing git
+### 3.1 Installing git
 
 macOS does not always ship git out of the box. Check with `git --version`. If
 missing, install via Homebrew:
@@ -73,7 +55,7 @@ missing, install via Homebrew:
 brew install git
 ```
 
-### Installing Terraform
+### 3.2 Installing Terraform
 
 On macOS, the recommended approach is Homebrew:
 
@@ -84,7 +66,7 @@ terraform -version
 
 For other platforms, see [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install).
 
-### Recommended editor
+### 3.3 Recommended editor
 
 [Visual Studio Code](https://code.visualstudio.com) with the
 [HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform)
@@ -92,7 +74,7 @@ gives you syntax highlighting, auto-complete, and inline documentation for
 resource attributes. It is optional, and editing `.tf` files is harder without
 it.
 
-### Create Platform API credentials
+### 3.4 Create Platform API credentials
 
 The Jamf Platform Terraform provider authenticates via OAuth2 using an
 **integration** created in **Jamf Account** at
@@ -130,7 +112,7 @@ for the Terraform provider.
 - `https://eu.api.jamfcloud.com` (EU)
 - `https://apac.api.jamfcloud.com` (APAC)
 
-### Install and configure jamf-cli
+### 3.5 Install and configure jamf-cli
 
 You use [jamf-cli](https://github.com/Jamf-Concepts/jamf-cli) during the
 import exercise to create unmanaged resources and look up their IDs. Install
@@ -152,7 +134,7 @@ credentials.
 This profile becomes your default, so commands below don't need `-p`. If you
 later add a second profile, pass `-p <profile>` to pick between them.
 
-### Install jamformer
+### 3.6 Install jamformer
 
 [jamformer](https://github.com/Jamf-Concepts/jamformer) reads an existing Jamf
 Pro instance and generates Terraform configuration from it. You run it later
@@ -165,16 +147,18 @@ brew install Jamf-Concepts/tap/jamformer
 
 ---
 
-## Setup
+## 4. Setup
 
-### Clone
+### 4.1 Clone
 
 ```bash
 git clone --branch ref-jamfpro-starter --single-branch https://github.com/Jamf-Concepts/terraform-jamf-reference.git
 cd terraform-jamf-reference
 ```
 
-### Configure credentials
+This downloads only the starter branch of the repository into a new `terraform-jamf-reference` folder. The `cd` command moves you into it.
+
+### 4.2 Configure credentials
 
 Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way, so this builds the habit.
 
@@ -213,7 +197,7 @@ export TF_VAR_jamfplatform_client_id TF_VAR_jamfplatform_client_secret
 
 The variables last only for the current terminal. In a new terminal, run all three commands again. If you skip this, Terraform prompts you for each missing value.
 
-### Initialise Terraform
+### 4.3 Initialise Terraform
 
 ```bash
 terraform init
@@ -242,7 +226,7 @@ Terraform has been successfully initialized!
 
 ---
 
-## Step 1: Categories
+## 5. Categories
 
 Categories group resources in Jamf Pro (policies, scripts, packages) for
 reporting and Self Service organisation. They depend on no other Jamf Pro
@@ -294,7 +278,7 @@ confirm they appear under **Settings → Global → Categories**.
 
 ---
 
-## Step 2: Scripts
+## 6. Scripts
 
 Scripts live at **Settings → Computer Management → Scripts** in Jamf Pro. This
 step introduces two things: reading a file from disk with `file()`, and
@@ -337,7 +321,7 @@ category.
 
 ---
 
-## Step 3: Static Computer Groups
+## 7. Static Computer Groups
 
 Static computer groups depend on nothing else. They are a named container
 whose membership you manage in the Jamf Pro UI or through MDM scope.
@@ -365,7 +349,7 @@ not its membership.
 
 ---
 
-## Step 4: Policies
+## 8. Policies
 
 A policy ties everything together, referencing a category, a static group and
 a script. This step shows how resource references compose: Terraform builds a
@@ -430,7 +414,7 @@ Plan should show `1 to add`. Verify the policy appears in Jamf Pro under
 
 ---
 
-## Drift: when Jamf Pro and Terraform disagree
+## 9. Drift: when Jamf Pro and Terraform disagree
 
 Terraform's state file records the last-known configuration of every resource
 it manages. If someone edits a resource in the Jamf Pro UI, the live
@@ -438,7 +422,7 @@ configuration diverges from state. Running `terraform plan` surfaces it:
 Terraform reads the current state of each resource from the API and compares
 it against the HCL. The HCL stays the source of truth.
 
-### Change 1: editing a category name
+### 9.1 Editing a category name
 
 In Jamf Pro, go to **Settings → Global → Categories**, find **Engineering**,
 and rename it to something else.
@@ -463,7 +447,7 @@ back to `"Engineering"` as declared in `categories.tf`. Running
 If you want to keep the new name instead, update `name` in `categories.tf` to
 match, then re-run `terraform plan`. The plan should show no changes.
 
-### Change 2: deleting and recreating a category
+### 9.2 Deleting and recreating a category
 
 This one does more damage. In Jamf Pro, delete **Engineering**, then create a
 new category with the same name.
@@ -522,7 +506,7 @@ block, run `-generate-config-out`, and verify a clean result.
 
 ---
 
-## Importing existing resources
+## 10. Importing existing resources
 
 Import brings a resource that already exists in Jamf Pro under Terraform
 management without recreating it. This is the path for resources created
@@ -556,7 +540,7 @@ jamf-cli pro scripts list -o table
 
 Note the `id` value for each. You use them in the import blocks.
 
-### Import 1: a category
+### 10.1 Importing a category
 
 Open `imports.tf` and uncomment the category block, filling in the ID:
 
@@ -620,7 +604,7 @@ A clean plan (`No changes`) means **Finance** is under Terraform management.
 Future changes go through the HCL, and an edit in the UI shows as drift on the
 next plan.
 
-### Import 2: a script
+### 10.2 Importing a script
 
 Uncomment the script block in `imports.tf`, filling in the ID:
 
@@ -675,7 +659,7 @@ terraform plan
 
 ---
 
-## Discovering resources with jamformer
+## 11. Discovering resources with jamformer
 
 The import workflow above works for one or two resources by hand. It does not
 scale to a Jamf Pro instance holding hundreds of policies, profiles and groups.
@@ -709,7 +693,7 @@ rather than a rewrite.
 
 ---
 
-## Cleaning up
+## 12. Cleaning up
 
 To remove everything Terraform created in your sandbox:
 
@@ -725,7 +709,7 @@ under **Integrations** to clean up credentials.
 
 ---
 
-## What's next
+## 13. What's next
 
 - **`ref-jamfplatform-starter` branch**, the companion starter for native
   Platform API resources (blueprints, compliance benchmarks, device groups).
