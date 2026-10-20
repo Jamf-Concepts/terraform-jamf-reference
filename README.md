@@ -144,8 +144,7 @@ Follow the prompts to enter your gateway URL, environment ID, and OAuth2
 credentials. The `--profile-name` flag saves them under their own profile, so
 setup does not overwrite one you already have. Setup does make the new profile
 your default. If you already use jamf-cli, restore your previous default after
-the tutorial with `jamf-cli config set-default <your-profile>`. Every jamf-cli
-command here passes `-p ref-jamfplatform-starter`, so it works whichever profile is the default.
+the tutorial with `jamf-cli config set-default <your-profile>`.
 
 ### 3.6 Install jamformer
 
@@ -704,7 +703,7 @@ cat > /tmp/import_group.json << 'EOF'
   ]
 }
 EOF
-jamf-cli pro platform-device-groups create --file /tmp/import_group.json -p ref-jamfplatform-starter
+jamf-cli pro platform-device-groups create --file /tmp/import_group.json
 ```
 
 **Blueprint.** Create this one in the Jamf UI: add a blueprint named
@@ -714,8 +713,8 @@ created.
 Then find their UUIDs:
 
 ```bash
-jamf-cli pro platform-device-groups list -o table -p ref-jamfplatform-starter
-jamf-cli pro blueprints list -o table -p ref-jamfplatform-starter
+jamf-cli pro platform-device-groups list -o table
+jamf-cli pro blueprints list -o table
 ```
 
 Note the `ID` value for each. You use them in the import blocks.
