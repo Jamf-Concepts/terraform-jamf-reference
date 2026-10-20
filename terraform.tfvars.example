@@ -4,10 +4,9 @@
 # APAC: https://apac.api.jamfcloud.com
 jamfplatform_base_url = ""
 
-# OAuth2 credentials. See Prerequisites in README.md for setup steps.
-jamfplatform_client_id     = ""
-jamfplatform_client_secret = ""
-
 # Your platform environment UUID. The Integration details panel at
 # account.jamf.com shows it.
 jamfplatform_environment_id = ""
+
+# Client ID and secret are not set here. Export them as TF_VAR_ environment
+# variables. See Configure credentials in README.md.
