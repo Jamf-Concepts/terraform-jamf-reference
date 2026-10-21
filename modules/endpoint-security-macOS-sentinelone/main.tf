@@ -18,11 +18,12 @@ resource "jamfpro_category" "sentinelone" {
 }
 
 ## SentinelOne Configuration Profiles
-# Deploys 4 configuration profiles from .mobileconfig files:
+# Deploys 5 configuration profiles from .mobileconfig / .tpl files:
 #   1. Service Management    — Managed Login Items
 #   2. Network Filter        — Content Filter / socket filter validation
 #   3. Network Extension     — System Extension for network monitoring
 #   4. Privacy Control       — PPPC / Full Disk Access
+#   5. License               — Registration token (rendered from template)
 
 resource "jamfpro_macos_configuration_profile_plist" "sentinelone_service_management" {
   name                = "SentinelOne - Service Management"
@@ -96,6 +97,26 @@ resource "jamfpro_macos_configuration_profile_plist" "sentinelone_privacy_contro
   }
 }
 
+resource "jamfpro_macos_configuration_profile_plist" "sentinelone_license" {
+  name                = "SentinelOne - License"
+  description         = "Provides the SentinelOne registration token used to license the agent."
+  level               = "System"
+  distribution_method = "Install Automatically"
+  redeploy_on_update  = "Newly Assigned"
+  category_id         = jamfpro_category.sentinelone.id
+  payload_validate    = false
+  user_removable      = false
+
+  payloads = local.sentinelone_license_profile
+
+  scope {
+    all_computers = false
+    all_jss_users = false
+
+    computer_group_ids = [jamfpro_smart_computer_group.sentinelone_target.id]
+  }
+}
+
 ## Smart Computer Groups
 resource "jamfpro_smart_computer_group" "sentinelone_target" {
   name = "SentinelOne Target Group"
@@ -162,19 +183,6 @@ resource "jamfpro_package" "sentinelone_installer" {
   }
 }
 
-## SentinelOne Install Script
-resource "jamfpro_script" "sentinelone_install" {
-  name            = "SentinelOne License and Install"
-  script_contents = file("${path.module}/support_files/scripts/sentinelone_install.sh")
-  category_id     = jamfpro_category.sentinelone.id
-  os_requirements = ""
-  priority        = "AFTER"
-  info            = "This script will install and license SentinelOne silently."
-  notes           = "Token is passed via policy parameter 4."
-  parameter4      = "SentinelOne Organization Token"
-  parameter5      = "SentinelOne Package Filename"
-}
-
 ## SentinelOne Deployment Policy
 resource "jamfpro_policy" "sentinelone_deploy" {
   count           = local.has_pkg_source ? 1 : 0
@@ -189,17 +197,10 @@ resource "jamfpro_policy" "sentinelone_deploy" {
       distribution_point = "default"
       package {
         id                          = jamfpro_package.sentinelone_installer[0].id
-        action                      = "Cache"
+        action                      = "Install"
         fill_user_template          = false
         fill_existing_user_template = false
       }
-    }
-
-    scripts {
-      id         = jamfpro_script.sentinelone_install.id
-      priority   = "After"
-      parameter4 = var.sentinelone_org_token
-      parameter5 = local.sentinelone_pkg_name
     }
 
     maintenance {
