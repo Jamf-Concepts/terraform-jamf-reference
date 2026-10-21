@@ -11,6 +11,14 @@ locals {
   has_pkg_source         = var.sentinelone_pkg_path != "" || var.sentinelone_pkg_url != ""
   sentinelone_pkg_name   = trimspace(data.local_file.sentinelone_pkg_name.content)
   sentinelone_pkg_source = "${path.module}/support_files/${local.sentinelone_pkg_name}"
+
+  # Build the license configuration profile by injecting the org token into template
+  sentinelone_license_profile = templatefile(
+    "${path.module}/support_files/SentinelOne_License.tpl",
+    {
+      sentinelone_org_token = var.sentinelone_org_token
+    }
+  )
 }
 
 # Source: S3 URL — download then extract version.

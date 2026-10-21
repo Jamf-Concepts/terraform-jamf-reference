@@ -36,13 +36,13 @@ This is derived from the `PackageInfo` or `Distribution` XML inside the package 
   - SentinelOne - Network Filter Validation (Content Filter)
   - SentinelOne - Network Monitoring Extension (System Extensions)
   - SentinelOne - Privacy Control (PPPC / Full Disk Access)
+  - SentinelOne - License (Registration token, rendered from `SentinelOne_License.tpl`)
 - **Smart Computer Groups**:
   - `SentinelOne Target Group` — devices eligible for deployment (macOS >= 13.0, scoped to a placeholder serial number)
   - `SentinelOne Installed` — devices with the SentinelOne agent present
   - `SentinelOne NOT Installed` — devices missing the agent but with the Privacy Control profile applied
 - **Package**: SentinelOne macOS agent installer, version-stamped and uploaded to Jamf Pro
-- **Script**: `SentinelOne License and Install` — writes the registration token then runs the installer
-- **Policy**: `Deploy SentinelOne Agent` — caches the package, runs the install script, triggers inventory update (scoped to Target Group, once per computer)
+- **Policy**: `Deploy SentinelOne Agent` — installs the package, triggers inventory update (scoped to Target Group, once per computer)
 
 ## Package Source Options
 
@@ -72,7 +72,9 @@ sentinelone_pkg_url = "https://bucket.s3.region.amazonaws.com/custom-files/sessi
 
 ### Configuration Profiles
 
-All four configuration profiles are scoped to **All Computers**. These profiles grant the system-level permissions (Full Disk Access, System Extensions, Network Filter, Managed Login Items) that the SentinelOne agent requires to function.
+The Service Management, Network Filter, Network Extension and Privacy Control profiles are scoped to **All Computers**. These profiles grant the system-level permissions (Full Disk Access, System Extensions, Network Filter, Managed Login Items) that the SentinelOne agent requires to function.
+
+The License profile delivers the organization token (`sentinelone_org_token`) as the `S1InstallRegistrationToken` managed preference, which the agent reads to register itself. It is scoped to the `SentinelOne Target Group`, matching the deployment policy.
 
 ### Target Group — Scoped Deployment
 
@@ -84,7 +86,7 @@ Replace the serial number criterion with your test device before expanding deplo
 
 ### Deployment Policy
 
-The policy runs **once per computer** at check-in. It caches the SentinelOne `.pkg` to the Jamf Waiting Room, then runs the install script which writes the organization token and executes the installer. An inventory update runs after installation to immediately reflect the device's application inventory.
+The policy runs **once per computer** at check-in. It installs the SentinelOne `.pkg`, which registers using the token delivered by the License configuration profile. An inventory update runs after installation to immediately reflect the device's application inventory.
 
 ## References
 
