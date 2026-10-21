@@ -44,7 +44,7 @@
 		<key>PayloadIdentifier</key>
 		<string>64696545-0A24-44B7-A090-4C53F32CF4C0</string>
 		<key>PayloadOrganization</key>
-		<string>Kyle Hoare</string>
+		<string>JAMF Software</string>
 		<key>PayloadRemovalDisallowed</key>
 		<true/>
 		<key>PayloadScope</key>
