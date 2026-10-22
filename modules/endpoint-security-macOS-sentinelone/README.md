@@ -35,8 +35,10 @@ This is derived from the `PackageInfo` or `Distribution` XML inside the package 
   - SentinelOne - Service Management (Managed Login Items)
   - SentinelOne - Network Filter Validation (Content Filter)
   - SentinelOne - Network Monitoring Extension (System Extensions)
-  - SentinelOne - Privacy Control (PPPC / Full Disk Access)
+  - SentinelOne - Privacy Control (PPPC / Full Disk Access & Bluetooth)
+  - SentinelOne - Notifications (Agent notification settings)
   - SentinelOne - License (Registration token, rendered from `SentinelOne_License.tpl`)
+- **Extension Attribute**: `SentinelOne - Agent Status` — reports the agent version and management console, or whether the agent is missing
 - **Smart Computer Groups**:
   - `SentinelOne Target Group` — devices eligible for deployment (macOS >= 13.0, scoped to a placeholder serial number)
   - `SentinelOne Installed` — devices with the SentinelOne agent present
@@ -72,7 +74,9 @@ sentinelone_pkg_url = "https://bucket.s3.region.amazonaws.com/custom-files/sessi
 
 ### Configuration Profiles
 
-The Service Management, Network Filter, Network Extension and Privacy Control profiles are scoped to **All Computers**. These profiles grant the system-level permissions (Full Disk Access, System Extensions, Network Filter, Managed Login Items) that the SentinelOne agent requires to function.
+The Service Management, Network Filter, Network Extension, Privacy Control and Notifications profiles are scoped to **All Computers**. These profiles grant the system-level permissions (Full Disk Access, Bluetooth, System Extensions, Network Filter, Managed Login Items, Notifications) that the SentinelOne agent requires to function.
+
+The Network Extension profile sets `AllowUserOverrides` to `false`, matching SentinelOne's vendor profile. macOS applies this device-wide: if any installed profile sets it to `false`, users can't approve system extensions that aren't explicitly allowed by a configuration profile.
 
 The License profile delivers the organization token (`sentinelone_org_token`) as the `S1InstallRegistrationToken` managed preference, which the agent reads to register itself. It is scoped to the `SentinelOne Target Group`, matching the deployment policy.
 
