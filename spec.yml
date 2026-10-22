@@ -430,7 +430,7 @@ sentinelone:
     required_provider: jpro
     category: Security
     display_name: Deploy SentinelOne Agent
-    display_desc: Configures SentinelOne agent deployment for macOS endpoint protection. Creates the necessary configuration profiles (Service Management, Network Filter, Network Extension, Privacy Control, License), package upload, smart groups, and deployment policy.
+    display_desc: Configures SentinelOne agent deployment for macOS endpoint protection. Creates the necessary configuration profiles (Service Management, Network Filter, Network Extension, Privacy Control, Notifications, License), extension attribute, package upload, smart groups, and deployment policy.
 
   - key: sentinelone_org_token
     type: <string>
