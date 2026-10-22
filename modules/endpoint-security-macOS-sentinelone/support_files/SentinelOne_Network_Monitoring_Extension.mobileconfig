@@ -6,7 +6,7 @@
 	<array>
 		<dict>
 			<key>AllowUserOverrides</key>
-			<true/>
+			<false/>
 			<key>AllowedSystemExtensions</key>
 			<dict>
 				<key>4AYE5J54KN</key>
@@ -28,10 +28,17 @@
 			<string>1BDD5153-6C81-4E0F-B409-1C321FF5E251</string>
 			<key>PayloadVersion</key>
 			<integer>1</integer>
+			<key>RemovableSystemExtensions</key>
+			<dict>
+				<key>4AYE5J54KN</key>
+				<array>
+					<string>com.sentinelone.network-monitoring</string>
+				</array>
+			</dict>
 		</dict>
 	</array>
 	<key>PayloadDescription</key>
-	<string>Enables automatic loading of SentinelOne System Extension.</string>
+	<string>Allows the SentinelOne System Extension to load and be removed without user approval.</string>
 	<key>PayloadDisplayName</key>
 	<string>SentinelOne - Network Monitoring Extension</string>
 	<key>PayloadIdentifier</key>

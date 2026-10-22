@@ -18,12 +18,13 @@ resource "jamfpro_category" "sentinelone" {
 }
 
 ## SentinelOne Configuration Profiles
-# Deploys 5 configuration profiles from .mobileconfig / .tpl files:
+# Deploys 6 configuration profiles from .mobileconfig / .tpl files:
 #   1. Service Management    — Managed Login Items
 #   2. Network Filter        — Content Filter / socket filter validation
 #   3. Network Extension     — System Extension for network monitoring
-#   4. Privacy Control       — PPPC / Full Disk Access
-#   5. License               — Registration token (rendered from template)
+#   4. Privacy Control       — PPPC / Full Disk Access & Bluetooth
+#   5. Notifications         — Agent notification settings
+#   6. License               — Registration token (rendered from template)
 
 resource "jamfpro_macos_configuration_profile_plist" "sentinelone_service_management" {
   name                = "SentinelOne - Service Management"
@@ -63,7 +64,7 @@ resource "jamfpro_macos_configuration_profile_plist" "sentinelone_network_filter
 
 resource "jamfpro_macos_configuration_profile_plist" "sentinelone_network_extension" {
   name                = "SentinelOne - Network Monitoring Extension"
-  description         = "Enables automatic loading of SentinelOne System Extension."
+  description         = "Allows the SentinelOne System Extension to load and be removed without user approval."
   level               = "System"
   distribution_method = "Install Automatically"
   redeploy_on_update  = "Newly Assigned"
@@ -81,7 +82,7 @@ resource "jamfpro_macos_configuration_profile_plist" "sentinelone_network_extens
 
 resource "jamfpro_macos_configuration_profile_plist" "sentinelone_privacy_control" {
   name                = "SentinelOne - Privacy Control"
-  description         = "Provides Full Disk Access to SentinelOne agent processes."
+  description         = "Provides Full Disk Access and Bluetooth access to SentinelOne agent processes."
   level               = "System"
   distribution_method = "Install Automatically"
   redeploy_on_update  = "Newly Assigned"
@@ -90,6 +91,24 @@ resource "jamfpro_macos_configuration_profile_plist" "sentinelone_privacy_contro
   user_removable      = false
 
   payloads = file("${path.module}/support_files/SentinelOne_Privacy_Control.mobileconfig")
+
+  scope {
+    all_computers = true
+    all_jss_users = false
+  }
+}
+
+resource "jamfpro_macos_configuration_profile_plist" "sentinelone_notifications" {
+  name                = "SentinelOne - Notifications"
+  description         = "Enables notifications for the SentinelOne agent."
+  level               = "System"
+  distribution_method = "Install Automatically"
+  redeploy_on_update  = "Newly Assigned"
+  category_id         = jamfpro_category.sentinelone.id
+  payload_validate    = false
+  user_removable      = false
+
+  payloads = file("${path.module}/support_files/SentinelOne_Notifications.mobileconfig")
 
   scope {
     all_computers = true
@@ -115,6 +134,16 @@ resource "jamfpro_macos_configuration_profile_plist" "sentinelone_license" {
 
     computer_group_ids = [jamfpro_smart_computer_group.sentinelone_target.id]
   }
+}
+
+## Extension Attributes
+resource "jamfpro_computer_extension_attribute" "sentinelone_agent_status" {
+  name                   = "SentinelOne - Agent Status"
+  input_type             = "SCRIPT"
+  enabled                = true
+  data_type              = "STRING"
+  inventory_display_type = "EXTENSION_ATTRIBUTES"
+  script_contents        = file("${path.module}/support_files/computer_extension_attributes/SentinelOne_Agent_Status.sh")
 }
 
 ## Smart Computer Groups
