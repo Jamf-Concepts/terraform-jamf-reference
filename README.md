@@ -590,8 +590,14 @@ resource "jamfplatform_cbengine_benchmark" "cis_lvl1" {
   benchmark can target several groups at once. Terraform resolves the
   dependencies from the reference graph, so you order nothing by hand.
 - `enforcement_mode = "MONITOR"` reports compliance without enforcing
-  remediation. Change to `"MONITOR_AND_ENFORCE"` to also apply corrective
-  configuration.
+  remediation. `"MONITOR_AND_ENFORCE"` also applies corrective configuration.
+  Jamf cannot update a benchmark in place, so changing `enforcement_mode` does
+  not edit the benchmark. Terraform deletes it and creates a new one. Devices
+  have no benchmark until the create finishes. Treat a switch to enforce mode
+  as a replacement, not an edit.
+- Changing `title`, `description`, `target_device_groups`,
+  `selected_os_versions` or `enforcement_mode` replaces the benchmark. Plan
+  output shows `-/+` for it. Read every `-/+` before you apply.
 
 ```bash
 terraform plan
@@ -897,6 +903,13 @@ terraform destroy
 
 Terraform reads state and deletes each resource from the Platform API. Type `yes`
 when prompted. The state file will be empty when it finishes.
+
+A compliance benchmark can block its own destroy. Jamf refuses to delete a
+benchmark while a Jamf Pro object refers to one of the smart groups the
+benchmark created, for example a smart group with a `member of` criterion
+naming one. Terraform then waits 15 minutes and reports an error. Remove that
+reference in Jamf Pro and run `terraform destroy` again. If you remove it
+during the wait, the destroy finishes within half a minute.
 
 Then delete the integration in [account.jamf.com](https://account.jamf.com) under **Integrations** to clean up credentials.
 
