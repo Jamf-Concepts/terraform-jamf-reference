@@ -91,6 +91,7 @@ The Jamf Platform Terraform provider authenticates via OAuth2 using an
 
    | Category | Permission | Actions |
    | --- | --- | --- |
+   | Global settings | Self Service configuration | Read |
    | Organizational context | Categories | Create, Read, Update, Delete |
    | Deployment | Scripts | Create, Read, Update, Delete |
    | Deployment | Policies | Create, Read, Update, Delete |
