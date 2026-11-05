@@ -71,10 +71,9 @@ brew install --cask visual-studio-code
 ```
 
 Then add the
-[HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform)
-gives you syntax highlighting, auto-complete, and inline documentation for
-resource attributes. It is optional, and editing `.tf` files is harder without
-it.
+[HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform).
+It gives you syntax highlighting, auto-complete, and inline documentation for
+resource attributes. It is optional, but editing `.tf` files is harder without it.
 
 ### 3.4 Create Platform API credentials
 
@@ -163,11 +162,11 @@ git clone --branch ref-jamfpro-starter --single-branch https://github.com/Jamf-C
 cd terraform-jamf-reference
 ```
 
-This downloads only the starter branch of the repository into a new `terraform-jamf-reference` folder. The `cd` command moves you into it.
+This downloads the starter branch into a new `terraform-jamf-reference` folder.
 
 ### 4.2 Configure credentials
 
-Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way, so this builds the habit.
+Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way.
 
 Copy the example file:
 
@@ -465,42 +464,59 @@ Run a plan:
 terraform plan
 ```
 
-Terraform shows:
+The plan fails:
 
 ```text
-+ jamfplatform_pro_category.engineering
-~ jamfplatform_pro_policy.run_hello_world
-~ jamfplatform_pro_script.hello_world
+Error: Name already in use
+
+  with jamfplatform_pro_category.engineering,
+  on categories.tf line 2, in resource "jamfplatform_pro_category" "engineering":
+   2:   name     = "Engineering"
+
+The category with the name "Engineering" already exists in Jamf Pro (ID 2404),
+and Jamf Pro does not allow two with the same name.
 ```
 
-The `+` means Terraform intends to create the resource. Terraform tracks
-resources by their API-assigned numeric ID, recorded in state. That ID no
-longer exists, because the category was deleted, so Terraform reads the
-resource as missing and plans to recreate it. The script and the policy show
-`~` alongside it: both reference the category, so their `category_id` has to
-move to whatever ID the new category gets.
+The provider checks names during `terraform plan`. The hand-made **Engineering**
+category already holds the name, so Terraform stops before it plans a create.
+Nothing in Jamf Pro changes. Without the check, the plan would show a `+` for
+the category and `~` for the script and policy, and the apply would fail with
+a duplicate name error.
 
-The new **Engineering** category you made by hand carries a different ID and
-is invisible to Terraform. If you run `terraform apply -parallelism=1`,
-Terraform attempts to create a new **Engineering** category through the API,
-and Jamf Pro rejects it with a duplicate name error. The apply fails.
-
-This is why splitting control between Terraform and the UI breaks things.
+The root cause: Terraform still has the deleted category's old ID in state, and
+the hand-made copy carries a different ID that Terraform does not know about.
 Terraform owns state; the UI owns the live instance; they are now out of sync
 and neither can fully reconcile without manual intervention.
 
 **The fix:** remove the stale state entry, then import the hand-made resource
-at its current ID:
+at its current ID. Find that ID with `jamf-cli pro categories list -o table`.
 
 ```bash
 terraform state rm jamfplatform_pro_category.engineering
 ```
 
-Then add an import block in `imports.tf` pointing to the new ID (find it with
-`jamf-cli pro categories list -o table`), and apply:
+Add an import block to `imports.tf`. Leave out the `provider` argument, because
+`categories.tf` already declares the resource:
+
+```hcl
+import {
+  to = jamfplatform_pro_category.engineering
+  id = "2404"
+}
+```
+
+Run a plan. Terraform imports the category, and updates the script and policy
+to reference its new ID:
+
+```text
+Plan: 1 to import, 0 to add, 2 to change, 0 to destroy.
+```
+
+Apply, then confirm the next plan shows no changes:
 
 ```bash
 terraform apply -parallelism=1
+terraform plan
 ```
 
 This keeps the existing resource and its ID, so anything in Jamf Pro already
