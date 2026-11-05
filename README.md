@@ -55,19 +55,14 @@ By the end of this session you will be able to:
 
 ### 3.1 Installing git
 
-macOS does not always ship git out of the box. Check with `git --version`. If
-missing, install via Homebrew:
-
-```bash
-brew install git
-```
+Git comes with the Xcode Command Line Tools, which Homebrew installs, so you do
+not need to install git separately. Check with `git --version`.
 
 ### 3.2 Installing Terraform
 
 On macOS, install it with Homebrew:
 
 ```bash
-brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
 terraform -version
 ```
@@ -77,7 +72,13 @@ For other platforms, see
 
 ### 3.3 Recommended editor
 
-[Visual Studio Code](https://code.visualstudio.com) with the
+Install [Visual Studio Code](https://code.visualstudio.com) with Homebrew:
+
+```bash
+brew install --cask visual-studio-code
+```
+
+Then add the
 [HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform)
 gives you syntax highlighting, auto-complete, and inline documentation for
 resource attributes. It is optional, and editing `.tf` files is harder without
@@ -91,10 +92,13 @@ you create in **Jamf Account** at [account.jamf.com](https://account.jamf.com).
 1. Sign in to [account.jamf.com](https://account.jamf.com)
 2. Navigate to **Integrations** in the left navigation
 3. Click **Create integration**
-4. Enter a name and description, select the **Region** matching your instance,
-   and scope the integration to the **platform environment** holding your
+4. Enter a name and description
+5. Under **Set level**, select **Platform environment**. The default is
+   **Organization management**, which does not scope the integration to your
    sandbox
-5. Grant these permissions. The picker groups them by category, with a
+6. Select the **Region** matching your instance, then select the platform
+   environment holding your sandbox
+7. Grant these permissions. The picker groups them by category, with a
    checkbox per action:
 
    | Category | Permission | Actions |
@@ -103,7 +107,7 @@ you create in **Jamf Account** at [account.jamf.com](https://account.jamf.com).
    | Deployment | Blueprints | Create, Read, Update, Delete |
    | Compliance | Compliance Benchmarks | Create, Read, Delete |
 
-6. Click **Create integration**. The Integration details panel then shows your
+8. Click **Create integration**. The Integration details panel then shows your
    `client_id` and `client_secret`
 
 > **Copy the client secret now.** Jamf Account never shows it again once you
