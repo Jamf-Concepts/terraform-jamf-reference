@@ -491,8 +491,8 @@ The output lists each available baseline with its ID, title, and rule count:
 
 ```text
 available_baselines = [
-  "cis_lvl1: CIS Benchmark - Level 1 (110 rules)",
-  "cis_lvl2: CIS Benchmark - Level 2 (132 rules)",
+  "cis_lvl1: CIS Benchmark - Level 1 (100 rules)",
+  "cis_lvl2: CIS Benchmark - Level 2 (118 rules)",
   ...
 ]
 ```
@@ -557,7 +557,6 @@ resource "jamfplatform_cbengine_benchmark" "cis_lvl1" {
   source_baseline_id = "cis_lvl1"
 
   rules = [
-    { id = "os_firewall_log_enable",                      enabled = true },
     { id = "os_gatekeeper_enable",                        enabled = true },
     { id = "system_settings_filevault_enforce",           enabled = true },
     { id = "pwpolicy_minimum_length_enforce",             enabled = true, odv_value = "15" },
