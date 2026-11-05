@@ -79,10 +79,9 @@ brew install --cask visual-studio-code
 ```
 
 Then add the
-[HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform)
-gives you syntax highlighting, auto-complete, and inline documentation for
-resource attributes. It is optional, and editing `.tf` files is harder without
-it.
+[HashiCorp Terraform extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform).
+It gives you syntax highlighting, auto-complete, and inline documentation for
+resource attributes. It is optional, but editing `.tf` files is harder without it.
 
 ### 3.4 Create Platform API credentials
 
@@ -172,11 +171,11 @@ git clone --branch ref-jamfplatform-starter --single-branch https://github.com/J
 cd terraform-jamf-reference
 ```
 
-This downloads only the starter branch of the repository into a new `terraform-jamf-reference` folder. The `cd` command moves you into it.
+This downloads the starter branch into a new `terraform-jamf-reference` folder.
 
 ### 4.2 Configure credentials
 
-Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way, so this builds the habit.
+Configuration values go in `terraform.tfvars`. API client credentials go in environment variables. A tfvars file sits on disk, where a commit, a screenshot or a screen share can leak it. An environment variable disappears when you close the terminal. CI/CD pipelines pass secrets the same way.
 
 Copy the example file:
 
@@ -253,7 +252,7 @@ Open `device_groups.tf` and replace its contents with:
 
 ```hcl
 resource "jamfplatform_device_group" "test_machines" {
-  name        = "Test Machines"
+  name        = "Platform Test Machines"
   description = "Managed by Terraform"
   group_type  = "smart"
   device_type = "computer"
@@ -371,7 +370,7 @@ terraform apply
 ```
 
 Plan should show `1 to add`. Verify the **Software Update Settings** blueprint
-appears in the Jamf UI scoped to **Test Machines**.
+appears in the Jamf UI scoped to **Platform Test Machines**.
 
 ---
 
@@ -454,7 +453,7 @@ terraform apply
 ```
 
 Plan should show `1 to add`. Verify the **Safari Restrictions** blueprint
-appears in the Jamf UI scoped to **Test Machines**.
+appears in the Jamf UI scoped to **Platform Test Machines**.
 
 ---
 
@@ -713,7 +712,7 @@ cat > /tmp/import_group.json << 'EOF'
   ]
 }
 EOF
-jamf-cli pro platform-device-groups create --file /tmp/import_group.json
+jamf-cli pro platform-device-groups create --from-file /tmp/import_group.json
 ```
 
 **Blueprint.** Create this one in the Jamf UI: add a blueprint named
