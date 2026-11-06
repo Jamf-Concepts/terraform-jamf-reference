@@ -22,41 +22,40 @@
 # fall back to the provider's "unset" behaviour.
 
 resource "jamfplatform_pro_computer_prestage_enrollment" "generic" {
-  display_name                            = "Generic (Managed by Terraform)"
-  mandatory                               = true
-  mdm_removable                           = false
-  prevent_activation_lock                 = true
-  enable_device_based_activation_lock     = false
-  require_authentication                  = false
-  keep_existing_site_membership           = false
-  keep_existing_location_information      = false
-  auto_advance_setup                      = false
-  install_profiles_during_setup           = false
-  device_enrollment_program_instance_id   = jamfplatform_pro_automated_device_enrollment.default.id
-  prestage_minimum_os_target_version_type = "MINIMUM_OS_LATEST_MINOR_VERSION"
+  display_name                                  = "Generic (Managed by Terraform)"
+  make_mdm_profile_mandatory                    = true
+  allow_mdm_profile_removal                     = false
+  prevent_activation_lock                       = true
+  enable_device_based_activation_lock           = false
+  require_authentication                        = false
+  use_existing_site_membership                  = false
+  use_existing_location_information             = false
+  automatically_advance_through_setup_assistant = false
+  device_enrollment_program_instance_id         = jamfplatform_pro_automated_device_enrollment.default.id
+  prestage_minimum_os_target_version_type       = "MINIMUM_OS_LATEST_MINOR_VERSION"
 
   skip_setup_items = {
     biometric                   = false
     terms_of_address            = true
     filevault                   = false
     icloud_diagnostics          = true
-    diagnostics                 = true
+    app_analytics               = true
     accessibility               = false
     apple_id                    = true
     screen_time                 = true
     siri                        = true
-    display_tone                = true
-    restore                     = true
-    appearance                  = false
+    true_tone_display           = true
+    transfer_information        = true
+    choose_your_look            = false
     privacy                     = true
     payment                     = true
     registration                = true
-    tos                         = true
-    icloud_storage              = true
+    terms_and_conditions        = true
+    all_your_files_in_icloud    = true
     location                    = false
     intelligence                = true
     enable_lockdown_mode        = true
-    welcome                     = true
+    get_started                 = true
     wallpaper                   = true
     software_update             = true
     additional_privacy_settings = true
@@ -65,23 +64,22 @@ resource "jamfplatform_pro_computer_prestage_enrollment" "generic" {
 }
 
 resource "jamfplatform_pro_computer_prestage_enrollment" "entra_id_psso" {
-  display_name                            = "Entra ID Platform SSO (Managed by Terraform)"
-  mandatory                               = true
-  mdm_removable                           = false
-  prevent_activation_lock                 = true
-  enable_device_based_activation_lock     = false
-  require_authentication                  = false
-  keep_existing_site_membership           = false
-  keep_existing_location_information      = false
-  auto_advance_setup                      = false
-  install_profiles_during_setup           = true
-  device_enrollment_program_instance_id   = jamfplatform_pro_automated_device_enrollment.default.id
-  prestage_minimum_os_target_version_type = "MINIMUM_OS_LATEST_MINOR_VERSION"
-  psso_enabled                            = true
-  platform_sso_app_bundle_id              = "com.microsoft.CompanyPortalMac"
-  custom_package_distribution_point_id    = "-2"
+  display_name                                  = "Entra ID Platform SSO (Managed by Terraform)"
+  make_mdm_profile_mandatory                    = true
+  allow_mdm_profile_removal                     = false
+  prevent_activation_lock                       = true
+  enable_device_based_activation_lock           = false
+  require_authentication                        = false
+  use_existing_site_membership                  = false
+  use_existing_location_information             = false
+  automatically_advance_through_setup_assistant = false
+  device_enrollment_program_instance_id         = jamfplatform_pro_automated_device_enrollment.default.id
+  prestage_minimum_os_target_version_type       = "MINIMUM_OS_LATEST_MINOR_VERSION"
+  psso_enabled                                  = true
+  platform_sso_app_bundle_id                    = "com.microsoft.CompanyPortalMac"
+  custom_package_distribution_point_id          = "-2"
 
-  prestage_installed_profile_ids = [
+  configuration_profile_ids = [
     jamfplatform_pro_macos_configuration_profile.microsoft_autoupdate.id,
     jamfplatform_pro_macos_configuration_profile.sso_extension_entra_id.id
   ]
@@ -95,23 +93,23 @@ resource "jamfplatform_pro_computer_prestage_enrollment" "entra_id_psso" {
     terms_of_address            = true
     filevault                   = false
     icloud_diagnostics          = true
-    diagnostics                 = true
+    app_analytics               = true
     accessibility               = false
     apple_id                    = true
     screen_time                 = true
     siri                        = true
-    display_tone                = true
-    restore                     = true
-    appearance                  = false
+    true_tone_display           = true
+    transfer_information        = true
+    choose_your_look            = false
     privacy                     = true
     payment                     = true
     registration                = true
-    tos                         = true
-    icloud_storage              = true
+    terms_and_conditions        = true
+    all_your_files_in_icloud    = true
     location                    = false
     intelligence                = true
     enable_lockdown_mode        = true
-    welcome                     = true
+    get_started                 = true
     wallpaper                   = true
     software_update             = true
     additional_privacy_settings = true
