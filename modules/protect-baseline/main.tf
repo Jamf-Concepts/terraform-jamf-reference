@@ -21,11 +21,11 @@ terraform {
   required_providers {
     jamfprotect = {
       source  = "Jamf-Concepts/jamfprotect"
-      version = ">= 0.10.0"
+      version = ">= 0.12.0"
     }
     jamfplatform = {
       source  = "jamf/jamfplatform"
-      version = ">= 0.32.0"
+      version = ">= 1.8.0"
     }
   }
 }
