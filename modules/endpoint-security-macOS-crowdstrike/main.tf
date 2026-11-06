@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 0.32.0"
+      version               = ">= 1.8.0"
       configuration_aliases = [jamfplatform.jpro]
     }
   }
@@ -89,17 +89,15 @@ resource "jamfplatform_pro_policy" "policy_crowdstrike_api_install" {
     force_users_to_view_description = false
     feature_on_main_page            = false
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.scripts_falconcid.id
-        priority   = "After"
-        parameter4 = var.falcon_customer_id
-        parameter5 = ""
-        parameter6 = ""
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.scripts_falconcid.id
+      priority   = "After"
+      parameter4 = var.falcon_customer_id
+      parameter5 = ""
+      parameter6 = ""
+    },
+  ]
   maintenance = {
     recon                       = true
     reset_name                  = false

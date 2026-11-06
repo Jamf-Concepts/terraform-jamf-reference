@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 0.32.0"
+      version               = ">= 1.8.0"
       configuration_aliases = [jamfplatform.jpro]
     }
   }
@@ -83,17 +83,15 @@ resource "jamfplatform_pro_policy" "policy_reissue_recovery_key" {
     force_users_to_view_description = false
     feature_on_main_page            = true
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.script_reissuekey.id
-        priority   = "After"
-        parameter4 = "<Replace with your organization name>"
-        parameter5 = ""
-        parameter6 = "<replace with additional info for the end user>"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.script_reissuekey.id
+      priority   = "After"
+      parameter4 = "<Replace with your organization name>"
+      parameter5 = ""
+      parameter6 = "<replace with additional info for the end user>"
+    },
+  ]
   maintenance = {
     recon                       = true
     reset_name                  = false
