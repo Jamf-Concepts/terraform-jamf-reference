@@ -12,7 +12,7 @@ terraform {
   required_providers {
     jamfpro = {
       source  = "deploymenttheory/jamfpro"
-      version = ">= 0.37.0"
+      version = ">= 0.42.0"
     }
     time = {
       source  = "hashicorp/time"

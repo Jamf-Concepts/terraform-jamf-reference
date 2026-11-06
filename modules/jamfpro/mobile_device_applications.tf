@@ -92,7 +92,6 @@ resource "jamfpro_mobile_device_application" "apple_app" {
   display_name                           = "${each.value.track_name} (Managed by Terraform)"
   bundle_id                              = each.value.bundle_id
   version                                = each.value.version
-  internal_app                           = false
   category_id                            = jamfpro_category.common["applications"].id
   site_id                                = -1
   itunes_store_url                       = each.value.track_view_url
@@ -140,7 +139,6 @@ resource "jamfpro_mobile_device_application" "jamf_self_service" {
   display_name                           = "${each.value.track_name} (Managed by Terraform)"
   bundle_id                              = each.value.bundle_id
   version                                = each.value.version
-  internal_app                           = false
   category_id                            = jamfpro_category.common["applications"].id
   site_id                                = -1
   itunes_store_url                       = each.value.track_view_url
@@ -189,7 +187,6 @@ resource "jamfpro_mobile_device_application" "microsoft_office" {
   display_name                           = "${each.value.track_name} (Managed by Terraform)"
   bundle_id                              = each.value.bundle_id
   version                                = each.value.version
-  internal_app                           = false
   category_id                            = jamfpro_category.common["applications"].id
   site_id                                = -1
   itunes_store_url                       = each.value.track_view_url
