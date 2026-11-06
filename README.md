@@ -381,14 +381,12 @@ resource "jamfplatform_pro_policy" "run_hello_world" {
     }
   }
 
-  scripts = {
-    scripts = [
-      {
-        id       = jamfplatform_pro_script.hello_world.id
-        priority = "After"
-      }
-    ]
-  }
+  script_assignments = [
+    {
+      id       = jamfplatform_pro_script.hello_world.id
+      priority = "After"
+    }
+  ]
 
   maintenance = {
     update_inventory = true
@@ -398,9 +396,9 @@ resource "jamfplatform_pro_policy" "run_hello_world" {
 
 **Key points:**
 
-- `category_id`, `computer_group_ids`, and `scripts[*].id` each reference a
-  resource defined in a different file. Terraform resolves these at plan time,
-  so you order nothing by hand.
+- `category_id`, `computer_group_ids`, and `script_assignments[*].id` each
+  reference a resource defined in a different file. Terraform resolves these at
+  plan time, so you order nothing by hand.
 - `computer_group_ids` uses `.jamf_pro_id` (the classic numeric Jamf Pro ID)
   rather than `.id` (which is a Platform Services UUID). The policy API requires
   the numeric ID.
