@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 0.32.0"
+      version               = ">= 1.8.0"
       configuration_aliases = [jamfplatform.jpro]
     }
     null = {
@@ -198,17 +198,15 @@ resource "jamfplatform_pro_policy" "workbrew_install_policy" {
       },
     ]
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.workbrew_script.id
-        priority   = "Before"
-        parameter4 = var.workbrew_workspace_api_key
-        parameter5 = ""
-        parameter6 = ""
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.workbrew_script.id
+      priority   = "Before"
+      parameter4 = var.workbrew_workspace_api_key
+      parameter5 = ""
+      parameter6 = ""
+    },
+  ]
   maintenance = {
     recon                       = true
     reset_name                  = false

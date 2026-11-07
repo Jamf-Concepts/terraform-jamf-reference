@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 1.5.0" # jamfplatform_apple_app_store_app data source
+      version               = ">= 1.8.0" # jamfplatform_apple_app_store_app data source
       configuration_aliases = [jamfplatform.jpro]
     }
   }

@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 0.32.0"
+      version               = ">= 1.8.0"
       configuration_aliases = [jamfplatform.jpro]
     }
   }
@@ -161,15 +161,13 @@ resource "jamfplatform_pro_policy" "policy_sonoma_stig_audit" {
   self_service = {
     use_for_self_service = false
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.script_sonoma_stig_compliance.id
-        priority   = "After"
-        parameter4 = "--check"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.script_sonoma_stig_compliance.id
+      priority   = "After"
+      parameter4 = "--check"
+    },
+  ]
   maintenance = {
     recon = true
   }
@@ -204,17 +202,15 @@ resource "jamfplatform_pro_policy" "policy_sonoma_stig_remediation" {
   self_service = {
     use_for_self_service = false
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.script_sonoma_stig_compliance.id
-        priority   = "After"
-        parameter4 = "--check"
-        parameter5 = "--fix"
-        parameter6 = "--check"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.script_sonoma_stig_compliance.id
+      priority   = "After"
+      parameter4 = "--check"
+      parameter5 = "--fix"
+      parameter6 = "--check"
+    },
+  ]
   maintenance = {
     recon = true
   }
@@ -249,15 +245,13 @@ resource "jamfplatform_pro_policy" "policy_sequoia_stig_audit" {
   self_service = {
     use_for_self_service = false
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.script_sequoia_stig_compliance.id
-        priority   = "After"
-        parameter4 = "--check"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.script_sequoia_stig_compliance.id
+      priority   = "After"
+      parameter4 = "--check"
+    },
+  ]
   maintenance = {
     recon = true
   }
@@ -292,17 +286,15 @@ resource "jamfplatform_pro_policy" "policy_sequoia_stig_remediation" {
   self_service = {
     use_for_self_service = false
   }
-  scripts = {
-    scripts = [
-      {
-        id         = jamfplatform_pro_script.script_sequoia_stig_compliance.id
-        priority   = "After"
-        parameter4 = "--check"
-        parameter5 = "--fix"
-        parameter6 = "--check"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id         = jamfplatform_pro_script.script_sequoia_stig_compliance.id
+      priority   = "After"
+      parameter4 = "--check"
+      parameter5 = "--fix"
+      parameter6 = "--check"
+    },
+  ]
   maintenance = {
     recon = true
   }

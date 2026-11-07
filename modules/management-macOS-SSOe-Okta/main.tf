@@ -3,7 +3,7 @@ terraform {
   required_providers {
     jamfplatform = {
       source                = "jamf/jamfplatform"
-      version               = ">= 0.32.0"
+      version               = ">= 1.8.0"
       configuration_aliases = [jamfplatform.jpro]
     }
   }
@@ -98,14 +98,12 @@ resource "jamfplatform_pro_policy" "policy_ssoe" {
   self_service = {
     use_for_self_service = false
   }
-  scripts = {
-    scripts = [
-      {
-        id       = jamfplatform_pro_script.script_ssoe-okta.id
-        priority = "Before"
-      },
-    ]
-  }
+  script_assignments = [
+    {
+      id       = jamfplatform_pro_script.script_ssoe-okta.id
+      priority = "Before"
+    },
+  ]
   maintenance = {
     recon = true
   }
