@@ -24,30 +24,65 @@ resource "jamfplatform_pro_category" "jsc_all_services_profiles" {
   priority = 9
 }
 
-resource "jamfplatform_device_group" "all_macs" {
-  name        = "[Foundations] All Computers"
-  group_type  = "smart"
-  device_type = "computer"
-  criteria = [
+## UEM Connect scoping below deliberately does not create Foundations-named
+## device groups. deploy-to-uem's scoping is additive-only and cannot be
+## narrowed or removed via any documented API once applied (confirmed
+## 2026-10-28 against letstest.jamfcloud.com) -- a Foundations-created group
+## used for this would become permanently undeletable the moment it's
+## scoped, blocking `tofu destroy`/rollback forever (HAS_DEPENDENCIES).
+## Instead this scopes to Jamf Pro's own built-in default groups, which
+## Terraform never creates or destroys, so there is nothing for this module
+## to ever get stuck deleting. The `platform` value on each deploy()
+## call (SUPERVISED_MAC/SUPERVISED_IOS) is what Jamf's backend uses to
+## restrict delivery to actually-supervised devices within the broader
+## built-in group -- not verified device-side yet (letstest has zero
+## enrolled mobile devices to check against), so confirm this in the first
+## real end-to-end run against a tenant with real supervised/unsupervised
+## mobile devices before relying on it.
+data "jamfplatform_device_groups" "all_managed_clients_search" {
+  filter = [
     {
-      criteria = "Computer Group"
-      operator = "member of"
-      value    = "All Managed Clients"
+      selector = "name"
+      argument = "All Managed Clients"
     },
   ]
 }
 
-resource "jamfplatform_device_group" "supervised_devices" {
-  name        = "[Foundations] Supervised Mobile Devices"
-  group_type  = "smart"
-  device_type = "mobile"
-  criteria = [
+data "jamfplatform_device_group" "all_managed_clients" {
+  id = data.jamfplatform_device_groups.all_managed_clients_search.device_groups[0].id
+}
+
+## No single built-in "All Mobile Devices" group exists in Jamf Pro --
+## confirmed live against letstest.jamfcloud.com 2026-10-28: built-ins are
+## split by device subtype (All Managed iPhones, All Managed iPads, All
+## Managed Apple TVs, All Managed Vision Pros, All Managed Watches, All
+## Managed iPod touches). SUPERVISED_IOS only applies to iPhone/iPad, so
+## both of those are passed to deploy-to-uem's uemGroups (which accepts an
+## array) rather than a single group.
+data "jamfplatform_device_groups" "all_managed_iphones_search" {
+  filter = [
     {
-      criteria = "Supervised"
-      operator = "is"
-      value    = "Supervised"
+      selector = "name"
+      argument = "All Managed iPhones"
     },
   ]
+}
+
+data "jamfplatform_device_group" "all_managed_iphones" {
+  id = data.jamfplatform_device_groups.all_managed_iphones_search.device_groups[0].id
+}
+
+data "jamfplatform_device_groups" "all_managed_ipads_search" {
+  filter = [
+    {
+      selector = "name"
+      argument = "All Managed iPads"
+    },
+  ]
+}
+
+data "jamfplatform_device_group" "all_managed_ipads" {
+  id = data.jamfplatform_device_groups.all_managed_ipads_search.device_groups[0].id
 }
 
 resource "jamfplatform_security_cloud_activation_profile" "all_services" {
@@ -82,8 +117,9 @@ resource "null_resource" "deploy_activation_profile" {
   triggers = {
     uem_connect_dependency  = var.uem_connect_dependency
     activation_profile_code = jamfplatform_security_cloud_activation_profile.all_services.id
-    mac_group_id            = jamfplatform_device_group.all_macs.jamf_pro_id
-    ios_group_id            = jamfplatform_device_group.supervised_devices.jamf_pro_id
+    mac_group_id            = data.jamfplatform_device_group.all_managed_clients.jamf_pro_id
+    ios_iphone_group_id     = data.jamfplatform_device_group.all_managed_iphones.jamf_pro_id
+    ios_ipad_group_id       = data.jamfplatform_device_group.all_managed_ipads.jamf_pro_id
   }
 
   provisioner "local-exec" {
@@ -94,8 +130,9 @@ resource "null_resource" "deploy_activation_profile" {
       JAMFPLATFORM_CLIENT_SECRET  = var.jamfplatform_client_secret
       JAMFPLATFORM_ENVIRONMENT_ID = var.jamfplatform_environment_id
       ACTIVATION_PROFILE_CODE     = jamfplatform_security_cloud_activation_profile.all_services.id
-      MAC_GROUP_ID                = jamfplatform_device_group.all_macs.jamf_pro_id
-      IOS_GROUP_ID                = jamfplatform_device_group.supervised_devices.jamf_pro_id
+      MAC_GROUP_ID                = data.jamfplatform_device_group.all_managed_clients.jamf_pro_id
+      IOS_IPHONE_GROUP_ID         = data.jamfplatform_device_group.all_managed_iphones.jamf_pro_id
+      IOS_IPAD_GROUP_ID           = data.jamfplatform_device_group.all_managed_ipads.jamf_pro_id
     }
     command = <<-EOT
       set -euo pipefail
@@ -117,7 +154,8 @@ resource "null_resource" "deploy_activation_profile" {
       # a real failure and fails fast.
       deploy() {
         platform="$1"
-        group="$2"
+        shift
+        groups_json=$(printf '%s\n' "$@" | jq -R . | jq -s .)
         attempt=1
         max_attempts=6
         while :; do
@@ -127,7 +165,7 @@ resource "null_resource" "deploy_activation_profile" {
             -H "Authorization: Bearer $TOKEN" \
             -H "X-Environment-Id: $JAMFPLATFORM_ENVIRONMENT_ID" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg platform "$platform" --arg group "$group" '{uem: "JAMF", platform: $platform, uemGroups: [$group]}')")
+            -d "$(jq -n --arg platform "$platform" --argjson groups "$groups_json" '{uem: "JAMF", platform: $platform, uemGroups: $groups}')")
           if [ "$status" = "204" ]; then
             rm -f "$body_file"
             return 0
@@ -147,7 +185,7 @@ resource "null_resource" "deploy_activation_profile" {
       }
 
       deploy "SUPERVISED_MAC" "$MAC_GROUP_ID"
-      deploy "SUPERVISED_IOS" "$IOS_GROUP_ID"
+      deploy "SUPERVISED_IOS" "$IOS_IPHONE_GROUP_ID" "$IOS_IPAD_GROUP_ID"
     EOT
   }
 }
