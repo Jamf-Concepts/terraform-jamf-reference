@@ -109,7 +109,7 @@ resource "jamfplatform_pro_policy" "policy_reissue_recovery_key" {
 resource "jamfplatform_pro_macos_configuration_profile" "jamfpro_macos_configuration_profile_enablefv" {
 
   general = {
-    name                = "[Foundations] Enable FileVault 2"
+    name                = "[Foundations] Enable FileVault"
     description         = "This configuration profile enforces FileVault 2 encryption. Prompts at next login"
     level               = "Computer Level"
     category_id         = jamfplatform_pro_category.category_disk_encrpytion.id
