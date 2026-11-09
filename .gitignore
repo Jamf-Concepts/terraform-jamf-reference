@@ -21,3 +21,6 @@ utils/*.md
 
 # AI maturity assessments
 ai-maturity-assessment-*.md
+
+# Local Claude Code settings
+.claude/settings.local.json
