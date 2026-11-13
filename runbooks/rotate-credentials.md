@@ -36,8 +36,8 @@ environment that uses the credential: `dev`, and for production both
 
 1. Check that no pipeline run is in progress.
 
-2. Issue new credentials in your state backend. Section 12.3 of the
-   [main README](../README.md) covers the backend the session uses.
+2. Issue new credentials in your state backend. Section 2.3 of
+   [PRODUCTION.md](../PRODUCTION.md) covers the backend the session uses.
 
 3. Store them in every GitHub environment that reads that state. Use the name
    of the secret your pipeline reads for the backend:

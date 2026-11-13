@@ -10,9 +10,9 @@ through pull requests. Pipelines check each change, show you the plan, apply it
 to a dev tenant, and promote a tested commit to prod when you run a release
 and a reviewer approves it.
 
-The session uses one sandbox tenant as dev. Section 11 holds every step that
-needs a second tenant, so you can skip it during the session and return to it
-later.
+The session uses one sandbox tenant as dev. Every step that needs a second
+tenant lives in [PRODUCTION.md](PRODUCTION.md), for you to follow after the
+session.
 
 ---
 
@@ -44,34 +44,7 @@ By the end of this session you will be able to:
 
 ---
 
-## 3. Design decisions
-
-Each decision below favours the option a team new to Terraform can read,
-operate and explain to an auditor.
-
-| Decision | Choice | Reason |
-| --- | --- | --- |
-| Repositories | One | Policies, profiles, groups and scripts reference each other. One repository keeps a change and its dependencies in one pull request. |
-| Layout | Flat, no modules | Modules pay off once you deploy the same building blocks to many customers. One organisation with two tenants gains indirection and nothing else. This is also the layout [jamformer](https://github.com/Jamf-Concepts/jamformer) writes. |
-| Environments | One configuration, one tfvars file per environment | Dev and prod run the same commit, so their configuration cannot diverge. A tfvars file holds what must differ. |
-| State | Remote, one state per environment | An apply to dev cannot touch prod. The lock stops two runs writing state at once. |
-| Secrets | Environment variables, stored as CI secrets | No secret enters the repository or a tfvars file. |
-| Branching | One long-lived branch, `main` | Short-lived branches merge through pull requests. Environment branches drift apart and need merges to promote. |
-| Promotion | A merge applies to dev. Running a release promotes a commit on `main` to prod, after an approval. | You choose when prod changes and how many merged changes go together. The release is the change record and the approval is the audit record. Every CI platform can run a pipeline on demand and gate it. |
-| Rollback | Revert the commit through a pull request | The revert gets the same checks, plan and approval as any change. |
-| Who applies | The pipeline | People plan on their own machines and never apply. State and the audit trail stay in one place. |
-
-The workflows run on GitHub Actions. Their logic lives in shell scripts that
-need `terraform` and `jq`, so you can call the same scripts from GitLab CI,
-Azure Pipelines or Bitbucket Pipelines.
-
-The workflows and scripts are a reference implementation, provided as-is. Read
-them, test them against your own tenants, and adapt them to your platform and
-your change policy before you rely on them.
-
----
-
-## 4. Prerequisites
+## 3. Prerequisites
 
 - A Jamf sandbox tenant. **Do not use production**
 - The tools from the first session: git, Terraform >= 1.14.0, VS Code with the
@@ -80,7 +53,7 @@ your change policy before you rely on them.
 - A Neon account, signed up with your GitHub account (see below)
 - Platform API credentials with the permissions below
 
-### 4.1 Learn the GitHub basics
+### 3.1 Learn the GitHub basics
 
 The session assumes you can create a branch, commit, open a pull request and
 merge it. If any of those is new to you, complete these free
@@ -93,7 +66,7 @@ your own GitHub account.
 | [Introduction to Git](https://github.com/skills/introduction-to-git) | Commits, branches and history from the command line and VS Code | Under 1 hour | You have not committed and pushed from a terminal before |
 | [Hello GitHub Actions](https://github.com/skills/hello-github-actions) | Creating and running a workflow | Under 30 minutes | You want to read the pipeline files with more confidence |
 
-### 4.2 Install the GitHub CLI
+### 3.2 Install the GitHub CLI
 
 The session creates the repository, its secrets and its pull requests from the
 terminal, and reads plans and results in the browser.
@@ -108,11 +81,11 @@ gh auth login
 
 Choose **GitHub.com**, **HTTPS** and **Login with a web browser**.
 
-### 4.3 Create a Neon account
+### 3.3 Create a Neon account
 
 [Neon](https://neon.com) hosts PostgreSQL. Its free plan covers this session.
-Neon stands in for the backend your organisation will choose, and section 12
-covers the swap to another one.
+Neon stands in for the backend your organisation will choose, and
+[PRODUCTION.md](PRODUCTION.md) covers the swap to another one.
 
 1. Open [console.neon.tech/signup](https://console.neon.tech/signup).
 2. Choose GitHub as the sign-in method and authorise Neon when GitHub asks.
@@ -125,9 +98,9 @@ covers the swap to another one.
 6. Click **Create project**.
 
 Neon creates a database named `neondb` on a branch named `production`. You
-collect its connection string in section 5.4.
+collect its connection string in section 4.4.
 
-### 4.4 Create Platform API credentials
+### 3.4 Create Platform API credentials
 
 Create an integration at [account.jamf.com](https://account.jamf.com) the way
 you did in the first session: **Integrations**, **Create integration**, level
@@ -149,14 +122,14 @@ Copy the client ID, the client secret and the environment ID.
 
 ---
 
-## 5. Setup
+## 4. Setup
 
 Setup builds the path a change travels. You create a repository, tell
 Terraform which tenant dev is, give it credentials and a place to keep state,
 then hand the same credentials to the pipeline. The first push proves the path
 by building the baseline in your sandbox.
 
-### 5.1 Create your repository
+### 4.1 Create your repository
 
 Your project needs its own repository with its own history. Download this
 branch, then swap the reference repository's history for a fresh one whose
@@ -188,7 +161,7 @@ gh repo create jamf-iac --private --source . --remote origin
 Keep the repository private. Plans show the contents of your scripts and
 profiles, and the pipelines post plans as comments.
 
-### 5.2 Point dev at your sandbox
+### 4.2 Point dev at your sandbox
 
 Open `environments/dev.tfvars` and set three values:
 
@@ -206,7 +179,7 @@ Use the gateway URL for your region, your environment ID, and the serial number
 of a test Mac. None of these is a secret, so the file lives in the repository
 and reviewers see changes to it.
 
-### 5.3 Set your credentials
+### 4.3 Set your credentials
 
 The provider reads the client ID and secret from environment variables. A
 variable lasts as long as the terminal, so no secret reaches a file that git
@@ -225,7 +198,7 @@ read -s JAMFPLATFORM_CLIENT_SECRET
 export JAMFPLATFORM_CLIENT_ID JAMFPLATFORM_CLIENT_SECRET
 ```
 
-### 5.4 Connect the remote state
+### 4.4 Connect the remote state
 
 1. In the [Neon console](https://console.neon.tech), open your project.
 2. Click **Connect** at the top of the left sidebar. The **Connect to your
@@ -277,7 +250,7 @@ A successful init ends with:
 Terraform has been successfully initialized!
 ```
 
-### 5.5 Plan from your machine
+### 4.5 Plan from your machine
 
 ```bash
 terraform plan -var-file=environments/dev.tfvars -parallelism=1
@@ -296,7 +269,7 @@ The plan should end with `Plan: 7 to add, 0 to change, 0 to destroy`.
 Stop there. You plan on your machine to check your work, and the pipeline
 applies.
 
-### 5.6 Give the pipeline its secrets
+### 4.6 Give the pipeline its secrets
 
 The pipeline runs on GitHub's machines, which hold none of the variables in
 your terminal. A GitHub environment holds the secrets for one tenant, and a
@@ -323,13 +296,14 @@ gh secret set PG_CONN_STR --env dev --body "$PG_CONN_STR"
 > short. Do not copy that to production.** A plan on a pull request runs code
 > nobody has reviewed yet, and here it runs with credentials that can change
 > the tenant. Production uses two integrations: one that can read, for plans,
-> and one that can write, held behind an approval. Section 11.2 sets that up.
+> and one that can write, held behind an approval. Section 1.2 of
+> [PRODUCTION.md](PRODUCTION.md) sets that up.
 > To give dev the same split, create a `dev-plan` environment with a read-only
 > integration, then add `github_environment: dev-plan` to the dev job in
 > `pull-request.yml` and in `drift.yml`, the way the prod jobs pass
 > `prod-plan`.
 
-### 5.7 Push and watch the first apply
+### 4.7 Push and watch the first apply
 
 Commit the project, including your edit to `environments/dev.tfvars`, and push
 it. A push to `main` is the one event that makes the pipeline apply.
@@ -363,7 +337,7 @@ the Jamf UI for the **Pilot Computers** group, the **Flush DNS Cache** policy
 and script, the **Login Window Banner** profile and the **Software Update
 Settings** blueprint.
 
-### 5.8 Protect main
+### 4.8 Protect main
 
 On GitHub, open **Settings**, **Rules**, **Rulesets** and add a branch ruleset
 for `main` that requires a pull request and requires the **Format, validate,
@@ -376,7 +350,7 @@ skip this step for the session and follow the pull request flow by convention.
 
 ---
 
-## 6. Tour of the project
+## 5. Tour of the project
 
 ```text
 .
@@ -395,6 +369,7 @@ skip this step for the session and follow the pull request flow by convention.
 ├── blueprints.tf
 ├── support_files/                Script bodies and profile payloads
 ├── runbooks/                     Step-by-step guides for routine tasks
+├── PRODUCTION.md                 Adding a production tenant and adapting the project
 ├── .terraform.lock.hcl           Exact provider version and checksums
 ├── .tflint.hcl                   Linter rules
 └── .github/
@@ -402,7 +377,7 @@ skip this step for the session and follow the pull request flow by convention.
     └── scripts/                  Plan rendering and reporting
 ```
 
-### 6.1 What differs between environments
+### 5.1 What differs between environments
 
 Dev and prod share every `.tf` file. Three things differ, and each has one
 home:
@@ -417,7 +392,7 @@ To make a new value differ, declare a variable in `variables.tf`, use it in a
 resource, and set it in each tfvars file. `device_groups.tf` shows the pattern
 with `var.pilot_serial_numbers`.
 
-### 6.2 The lock file
+### 5.2 The lock file
 
 `.terraform.lock.hcl` records the provider version Terraform selected and its
 checksums. The repository commits it, so your machine and the pipeline run the
@@ -438,7 +413,7 @@ terraform providers lock -platform=linux_amd64 -platform=darwin_arm64 -platform=
 The second command records checksums for the pipeline's Linux runners and for
 your team's machines.
 
-### 6.3 The pipelines
+### 5.3 The pipelines
 
 | Workflow | Runs on | Does | Changes Jamf |
 | --- | --- | --- | --- |
@@ -447,6 +422,14 @@ your team's machines.
 | **Release** | On demand | Requires prod. Checks the commit, shows the prod plan, waits for approval, applies to prod, then publishes a release that lists the pull requests it delivered. | Yes |
 | **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if dev differs from `main` or prod differs from its last release | No |
 | **Terraform** | Called by the four above | Holds the init, plan and apply steps once | |
+
+The workflows run on GitHub Actions. Their logic lives in shell scripts that
+need `terraform` and `jq`, so you can call the same scripts from GitLab CI,
+Azure Pipelines or Bitbucket Pipelines.
+
+The workflows and scripts are a reference implementation, provided as-is. Read
+them, test them against your own tenants, and adapt them to your platform and
+your change policy before you rely on them.
 
 The checks in **Pull request** each catch a different class of mistake:
 
@@ -462,7 +445,7 @@ the plan with additions in green, removals in red and changed lines in amber.
 
 ---
 
-## 7. Change Jamf through a pull request
+## 6. Change Jamf through a pull request
 
 Add a category. Start a branch:
 
@@ -543,7 +526,7 @@ review, its plan and its outcome.
 
 ---
 
-## 8. Revert a change
+## 7. Revert a change
 
 Make a change you will regret. On a new branch, open
 `support_files/macos_configuration_profiles/login_window_banner.mobileconfig`
@@ -636,7 +619,7 @@ git pull
 
 ---
 
-## 9. Detect and resolve drift
+## 8. Detect and resolve drift
 
 Drift is a difference between `main` and the tenant. Someone edits an object in
 the Jamf UI, or a merged change fails to apply.
@@ -693,7 +676,7 @@ Run the drift check again. It passes and closes the issue.
 
 ---
 
-## 10. Import an existing object
+## 9. Import an existing object
 
 Most tenants hold objects that predate Terraform. Importing one adds it to
 state without recreating it.
@@ -776,300 +759,15 @@ in your next pull request.
   `terraform plan -var-file=environments/dev.tfvars -parallelism=1 -generate-config-out=generated.tf`
   on your machine with the import block in place, then move the generated
   block into the right file.
-- For a whole tenant, use jamformer. Section 11.6 covers it.
+- For a whole tenant, use jamformer. Section 1.6 of
+  [PRODUCTION.md](PRODUCTION.md) covers it.
 
 ---
 
-## 11. Add production
-
-> **Requires prod.** Every step in this section needs a second tenant and
-> credentials for it. Skip the section during the session.
->
-> A mistake in this section reaches real devices. Scope the first resources you
-> promote to a pilot group, read each prod plan in full, and treat a 🟠 replace
-> or 🔴 destroy row as a reason to stop and ask.
-
-### 11.1 Describe the prod tenant
-
-Set the gateway URL, the environment ID and the pilot serial numbers of your
-production tenant in `environments/prod.tfvars`.
-
-### 11.2 Create two GitHub environments
-
-| GitHub environment | Used by | Credentials | Protection |
-| --- | --- | --- | --- |
-| `prod-plan` | Plans on pull requests, the release preview before approval, drift detection | An integration with the Read action of each permission in section 4.4 and no other action | None |
-| `prod` | The apply | An integration with the permissions from section 4.4 | Required reviewers |
-
-Two environments keep the write credentials behind the approval. A plan on a
-pull request runs code nobody has reviewed yet, so it gets credentials that can
-read and nothing more.
-
-```bash
-gh api --method PUT "repos/{owner}/{repo}/environments/prod-plan" --silent
-```
-
-```bash
-gh api --method PUT "repos/{owner}/{repo}/environments/prod" --silent
-```
-
-Store the same three secrets in each, as in section 5.6, with
-`--env prod-plan` and `--env prod`. Keep prod state apart from dev state if
-your organisation separates access to production data.
-
-On GitHub, open **Settings**, **Environments**, **prod**, tick **Required
-reviewers** and add the people who approve production changes. GitHub offers
-required reviewers on private repositories in paid plans.
-
-### 11.3 Turn prod on
-
-```bash
-gh variable set PROD_ENABLED --body true
-```
-
-The workflows skip every prod job until this variable is `true`.
-
-### 11.4 How a change reaches prod
-
-A merge changes dev and nothing else. Prod changes when you run the
-**Release** workflow. You decide when that happens and how many merged changes
-it carries.
-
-1. You open a pull request. It gains two plan comments, one for dev and one for
-   prod. The prod plan compares the pull request with prod, so it also lists
-   changes that have merged and await a release.
-2. You merge. **Deploy** applies the commit to dev. You test the change there.
-3. When dev holds what you want in prod, you start a release:
-
-   ```bash
-   gh workflow run release.yml
-   ```
-
-   On GitHub, the same control is **Actions**, **Release**, **Run workflow**.
-4. **Release** checks that the commit is on `main` and that dev applied it,
-   plans the commit against prod, shows the plan in the run summary, and
-   waits.
-5. A required reviewer opens the run, reads the prod plan, and clicks **Review
-   deployments**, then **Approve and deploy**.
-6. **Release** applies to prod.
-7. **Release** publishes a release named after the date and time in UTC, such
-   as `prod-2026-11-13-1344`. Its notes list every pull request merged since
-   the previous release. That list is your change record.
-
-GitHub records who started the release, who approved it and when, next to the
-plan and the apply log. The workflow publishes a release only after prod
-applies, so the latest release names what prod runs.
-
-**Key points:**
-
-- Dev is your test. Check each change on a dev device before you release.
-- A release carries every commit up to the one it names. To release some
-  merged changes and hold back later ones, name the last commit you want:
-
-  ```bash
-  gh workflow run release.yml -f commit=<commit-id>
-  ```
-
-  `git log --oneline` lists the commits on `main` with the ID of each.
-- You cannot release a later change without the earlier ones. If an earlier
-  change is not ready, revert it as in section 8 and merge it again later, or
-  ship it to prod switched off or scoped to a pilot group through a value in
-  `environments/prod.tfvars`.
-- Release often. A long gap between dev and prod makes each release larger and
-  harder to review.
-- The prod job plans again after the approval and applies that plan. If the
-  tenant changed between the preview and the approval, the applied plan differs
-  from the preview. The run summary shows the plan it applied.
-- Drift detection compares prod with the latest release, so merged changes
-  that await a release do not count as drift.
-- A failed check or a rejected approval publishes nothing and changes nothing.
-
-### 11.5 Revert in prod
-
-Revert through a pull request, as in section 8, let dev apply it, then run a
-release. The revert of a bad change is a production change too, so it takes
-the same route and the same approval.
-
-If prod is broken and cannot wait for that, release the last good commit:
-
-```bash
-gh workflow run release.yml -f commit=<commit-id>
-```
-
-Prod returns to that commit while `main` stays ahead. Then revert the bad
-change on `main`, or the next release delivers it again. GitHub refuses to
-publish a release for a commit that predates a change to the pipeline files,
-and the workflow stops before it touches prod in that case. Use the revert.
-
-If the bad change has merged and no release contains it, prod never received
-it. Revert it and carry on.
-
-### 11.6 Import with two tenants
-
-An import block names an ID, and each tenant assigns its own IDs. A block that
-is right for prod fails in dev.
-
-**Adopting an existing production tenant.** Most teams start here: production
-holds years of configuration and the sandbox is empty.
-
-1. Run [jamformer](https://github.com/Jamf-Concepts/jamformer) against prod. It
-   writes resource files in this project's layout, with import blocks beside
-   them.
-2. On your machine, with prod credentials and the prod state selected, plan with
-   `-var-file=environments/prod.tfvars -parallelism=1`. Trim the generated configuration
-   until the plan shows imports and no other action.
-3. Apply from your machine. This is the one apply you run outside the
-   pipeline, because it must finish before dev sees the configuration.
-4. Delete the import blocks, then open a pull request with the configuration.
-   The prod plan shows no changes. The dev plan creates every object, which
-   brings the sandbox in line with production.
-
-From then on, changes flow from dev to prod.
-
-**Adopting one object later.** Limit the import block to the tenant that holds
-the object. Declare the environment name as a variable:
-
-```hcl
-variable "environment" {
-  description = "Name of the environment this run targets."
-  type        = string
-}
-```
-
-Set `environment = "dev"` and `environment = "prod"` in the two tfvars files,
-then write the block:
-
-```hcl
-import {
-  for_each = var.environment == "prod" ? ["6900"] : []
-
-  to = jamfplatform_pro_category.main["printers"]
-  id = each.value
-}
-```
-
-The prod plan imports the object and the dev plan creates it.
-
-### 11.7 Secrets that differ per tenant
-
-Automated Device Enrollment and volume purchasing tokens come from Apple, and
-each tenant needs its own. Treat a token as a secret that differs per
-environment:
-
-```hcl
-variable "ade_server_token" {
-  description = "Base64-encoded Automated Device Enrollment server token (.p7m) for this environment."
-  type        = string
-  sensitive   = true
-}
-
-resource "jamfplatform_pro_automated_device_enrollment" "main" {
-  name                    = "Automated Device Enrollment"
-  server_token            = var.ade_server_token
-  server_token_wo_version = 1
-}
-```
-
-Store the token in each GitHub environment:
-
-```bash
-base64 -i token.p7m | gh secret set ADE_SERVER_TOKEN --env dev
-```
-
-Then pass it to Terraform by adding one line to the `env` block in
-`.github/workflows/terraform.yml`:
-
-```yaml
-      TF_VAR_ade_server_token: ${{ secrets.ADE_SERVER_TOKEN }}
-```
-
-The provider sends `server_token` to Jamf and keeps it out of state. To rotate
-the token, update the secret and raise `server_token_wo_version` by one.
-
-This example needs a token from Apple Business Manager, so the session does not
-run it.
-
----
-
-## 12. Make it yours
-
-### 12.1 Another state backend
-
-The session stores state in PostgreSQL on Neon because it is free and quick to
-set up. Your organisation may prefer S3, Azure Storage, Google Cloud Storage
-or HCP Terraform. The backend touches three places, and nothing else in the
-project depends on it:
-
-| Place | What is specific to the backend |
-| --- | --- |
-| `backend.tf` | The backend block |
-| `.github/workflows/terraform.yml` | The lines under the comment **State backend**: two environment variables and one check step |
-| GitHub environments | The secret that holds the backend credentials |
-
-To switch:
-
-1. Replace the block in `backend.tf` with the block for your backend. Give each
-   environment its own state through a
-   [partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration),
-   for example a state key per environment.
-2. In `.github/workflows/terraform.yml`, replace the lines under **State
-   backend** with your backend's credentials and settings.
-3. Store the new credentials in each GitHub environment.
-4. Run `terraform init -migrate-state` once per environment to copy the state
-   across.
-
-### 12.2 State locks
-
-Terraform locks the state for the length of a plan or an apply. A second run
-waits up to five minutes for the lock, then fails with
-`Error acquiring the state lock`.
-[Clear a state lock](runbooks/clear-a-state-lock.md) has the procedure.
-
-### 12.3 Notes on the session backend
-
-These apply to PostgreSQL on Neon and to no other backend.
-
-- **Connection string.** Copy it with **Connection pooling** off and change
-  `sslmode=require` to `sslmode=verify-full`, as in section 5.4. A pooled
-  string connects and plans, and its lock protects nothing. The pipeline
-  refuses a pooled string.
-- **Locks.** The lock lives as long as the database connection that took it,
-  so it ends when the run ends. `terraform force-unlock` does not work with
-  this backend.
-- **A lock that outlives its run.** End the stuck connection from the Neon
-  console, in **SQL Editor**. This ends every session that holds a Terraform
-  lock in that database, so check that no run is in progress for any
-  environment that stores state there.
-
-  ```sql
-  SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory';
-  ```
-
-- **New password.** In the Neon console, click **Connect**, then **Reset
-  password**, and copy the new connection string.
-
-### 12.4 Another CI platform
-
-Each platform needs the same four things:
-
-| Need | GitHub Actions | Elsewhere |
-| --- | --- | --- |
-| Run on pull requests and on merges to `main` | `on: pull_request`, `on: push` | Merge request and branch pipelines |
-| Run on demand with an input | `on: workflow_dispatch` | Manual pipelines with variables |
-| Secrets per environment | Environments | Protected or scoped variables, variable groups |
-| An approval before prod | Required reviewers | Protected environments, manual jobs, approval checks |
-| One apply at a time | `concurrency` | Resource groups, exclusive locks |
-
-`plan-summary.sh` runs anywhere with `terraform` and `jq`. `pr-comment.sh`,
-`apply-report.sh` and `drift-issue.sh` call the GitHub CLI, and each needs its
-`gh` commands swapped for your platform's API.
-
----
-
-## 13. Cleaning up
+## 10. Cleaning up
 
 The pipelines create and change. Removing a whole environment is a deliberate
-act you run from your machine, with the variables from sections 5.3 and 5.4
+act you run from your machine, with the variables from sections 4.3 and 4.4
 set:
 
 ```bash
@@ -1090,8 +788,11 @@ Then remove what the session created outside Jamf:
 
 ---
 
-## 14. What's next
+## 11. What's next
 
+- **[Taking the project to production](PRODUCTION.md)**, the guide to adding a
+  prod tenant, releasing changes to it with an approval, and swapping the
+  state backend or CI platform for your own.
 - **[Runbooks](runbooks/README.md)**, short procedures for the tasks you
   repeat once this project runs your tenants: making and reverting changes,
   resolving drift, upgrading the provider, rotating credentials and adding an

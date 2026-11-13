@@ -1,5 +1,5 @@
 # Values for the prod environment. Nothing in this file is a secret.
-# The pipelines ignore this file until you turn prod on. See README.md.
+# The pipelines ignore this file until you turn prod on. See PRODUCTION.md.
 
 jamfplatform_base_url = "https://us.api.jamfcloud.com"
 

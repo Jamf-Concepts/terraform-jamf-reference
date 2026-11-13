@@ -10,7 +10,7 @@ The steps use `stage` as the name.
 ## Steps
 
 1. Create an integration for the tenant in Jamf Account, with the permissions
-   from section 4.4 of the [main README](../README.md).
+   from section 3.4 of the [main README](../README.md).
 
 2. Create the GitHub environment and store its secrets:
 
@@ -88,11 +88,11 @@ stage tenant.
 
 - **The stage plan fails with `Name already in use`.** The tenant already holds
   objects with those names. See
-  [Import an existing object](import-an-existing-object.md), and section 11.6
-  of the main README for imports that apply to one tenant.
+  [Import an existing object](import-an-existing-object.md), and section 1.6
+  of [PRODUCTION.md](../PRODUCTION.md) for imports that apply to one tenant.
 - **Stage should wait for an approval.** Add required reviewers to the `stage`
   GitHub environment, and give its plans a separate `stage-plan` environment
-  with read-only credentials, as section 11.2 of the main README does for
-  prod.
+  with read-only credentials, as section 1.2 of
+  [PRODUCTION.md](../PRODUCTION.md) does for prod.
 - **A value must differ in stage.** Set it in `environments/stage.tfvars`. See
-  section 6.1 of the main README.
+  section 5.1 of the main README.

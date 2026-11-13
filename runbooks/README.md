@@ -6,7 +6,7 @@ do if it goes wrong.
 
 Commands assume you are in the repository folder with the GitHub CLI signed in.
 Commands that run Terraform on your machine also need the variables from
-sections 5.3 and 5.4 of the [main README](../README.md).
+sections 4.3 and 4.4 of the [main README](../README.md).
 
 | Task | Runbook |
 | --- | --- |
