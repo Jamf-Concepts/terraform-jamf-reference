@@ -6,7 +6,8 @@
 The session leaves you with one tenant, dev, changed through pull requests.
 This guide adds a production tenant, explains how a change reaches it, and
 lists what to adjust when you make the project your own. Section 3 gives the
-reason behind each design choice.
+reason behind each design choice. [CONVENTIONS.md](CONVENTIONS.md) sets the
+rules for naming and layout as the project grows.
 
 > **Requires prod.** Every step in section 1 needs a second tenant and
 > credentials for it.
@@ -50,6 +51,10 @@ your organisation separates access to production data.
 On GitHub, open **Settings**, **Environments**, **prod**, tick **Required
 reviewers** and add the people who approve production changes. GitHub offers
 required reviewers on private repositories in paid plans.
+
+To give dev the same split, create a `dev-plan` environment with a read-only
+integration, then add `github_environment: dev-plan` to the dev job in
+`pull-request.yml` and in `drift.yml`, the way the prod jobs pass `prod-plan`.
 
 ### 1.3 Turn prod on
 
@@ -283,19 +288,10 @@ These apply to PostgreSQL on Neon and to no other backend.
 
 ### 2.4 Another CI platform
 
-Each platform needs the same four things:
-
-| Need | GitHub Actions | Elsewhere |
-| --- | --- | --- |
-| Run on pull requests and on merges to `main` | `on: pull_request`, `on: push` | Merge request and branch pipelines |
-| Run on demand with an input | `on: workflow_dispatch` | Manual pipelines with variables |
-| Secrets per environment | Environments | Protected or scoped variables, variable groups |
-| An approval before prod | Required reviewers | Protected environments, manual jobs, approval checks |
-| One apply at a time | `concurrency` | Resource groups, exclusive locks |
-
-`plan-summary.sh` runs anywhere with `terraform` and `jq`. `pr-comment.sh`,
-`apply-report.sh` and `drift-issue.sh` call the GitHub CLI, and each needs its
-`gh` commands swapped for your platform's API.
+The workflows hold little logic. `plan-summary.sh` runs anywhere with
+`terraform` and `jq`. `pr-comment.sh`, `apply-report.sh` and `drift-issue.sh`
+call the GitHub CLI, and each needs those calls swapped for your platform's
+API.
 
 ---
 

@@ -20,8 +20,7 @@ session.
 
 By the end of this session you will be able to:
 
-- Store Terraform state in a remote backend and explain what the state lock
-  protects
+- Store Terraform state in a remote backend, with one state per environment
 - Keep one configuration for several environments and vary values per
   environment
 - Change Jamf through a pull request and read the plan the pipeline posts
@@ -206,13 +205,10 @@ export JAMFPLATFORM_CLIENT_ID JAMFPLATFORM_CLIENT_SECRET
 3. Check that **Database** shows `neondb` and the box below is labelled
    **Connection string**.
 4. Turn the **Connection pooling** toggle off. The hostname in the box loses
-   its `-pooler` suffix.
+   its `-pooler` suffix. Terraform's state lock does not work through the
+   pooler.
 5. Click **Copy snippet**. The copied string includes the password that the
    dialog masks.
-
-Terraform locks state with a lock that lives as long as its database
-connection. A pooler shares connections between clients, so a pooled
-connection string connects and plans, and the lock protects nothing.
 
 Run this command to load the string from your clipboard into the variable
 Terraform reads:
@@ -221,10 +217,9 @@ Terraform reads:
 export PG_CONN_STR="$(pbpaste | sed -e 's/-pooler//' -e 's/sslmode=require/sslmode=verify-full/')"
 ```
 
-The `sed` step changes `sslmode=require` to `sslmode=verify-full`, the setting
-Terraform's PostgreSQL client needs to reach Neon. It also removes `-pooler` in
-case the toggle was on. On Windows or Linux, paste the string into the
-`export` by hand and make the same two edits.
+The command sets `sslmode=verify-full`, which Terraform needs to reach Neon,
+and removes `-pooler` in case the toggle was on. On Windows or Linux, paste
+the string into the `export` by hand and make the same two edits.
 
 Choose the state for dev:
 
@@ -232,13 +227,10 @@ Choose the state for dev:
 export PG_SCHEMA_NAME=dev
 ```
 
-`backend.tf` holds an empty `backend "pg" {}` block. Terraform takes the
-connection string from `PG_CONN_STR` and the schema from `PG_SCHEMA_NAME`. Each
-environment uses its own schema in the database, so each has its own state.
+Each environment keeps its state under its own name in the database.
 
-Initialise. Terraform downloads the provider version the lock file names and
-connects to the backend. On first contact it creates the `dev` schema and an
-empty state inside it:
+Initialise. Terraform downloads the provider and creates an empty state for
+dev:
 
 ```bash
 terraform init
@@ -297,11 +289,8 @@ gh secret set PG_CONN_STR --env dev --body "$PG_CONN_STR"
 > nobody has reviewed yet, and here it runs with credentials that can change
 > the tenant. Production uses two integrations: one that can read, for plans,
 > and one that can write, held behind an approval. Section 1.2 of
-> [PRODUCTION.md](PRODUCTION.md) sets that up.
-> To give dev the same split, create a `dev-plan` environment with a read-only
-> integration, then add `github_environment: dev-plan` to the dev job in
-> `pull-request.yml` and in `drift.yml`, the way the prod jobs pass
-> `prod-plan`.
+> [PRODUCTION.md](PRODUCTION.md) sets that up, and shows how to give dev the
+> same split.
 
 ### 4.7 Push and watch the first apply
 
@@ -339,14 +328,25 @@ Settings** blueprint.
 
 ### 4.8 Protect main
 
-On GitHub, open **Settings**, **Rules**, **Rulesets** and add a branch ruleset
-for `main` that requires a pull request and requires the **Format, validate,
-lint** and **Dev / Plan dev** status checks to pass. From then on nobody can
-push to `main` or merge a change that fails its plan. Since a merge to `main`
-is what changes Jamf, this rule is your change control.
+A merge to `main` is what changes Jamf, so the rule that guards `main` is your
+change control. Create it:
 
-GitHub offers rulesets on private repositories in paid plans. On a free plan,
-skip this step for the session and follow the pull request flow by convention.
+1. On GitHub, open **Settings**, **Rules**, **Rulesets**, then **New ruleset**
+   and **New branch ruleset**.
+2. Enter a **Ruleset Name** such as `main`, and set **Enforcement status** to
+   **Active**.
+3. Under **Target branches**, click **Add target** and choose **Include
+   default branch**.
+4. Under **Branch rules**, tick **Require a pull request before merging** and
+   **Require status checks to pass**. Add the checks **Format, validate, lint**
+   and **Dev / Plan dev**.
+5. Click **Create**.
+
+GitHub enforces a ruleset on a private repository only when an organisation on
+a paid plan owns it. On a personal account the page shows a warning and saves
+the ruleset without enforcing it. Create it anyway, so you know where the
+control lives, and follow the pull request flow by convention during the
+session.
 
 ---
 
@@ -370,6 +370,8 @@ skip this step for the session and follow the pull request flow by convention.
 ├── support_files/                Script bodies and profile payloads
 ├── runbooks/                     Step-by-step guides for routine tasks
 ├── PRODUCTION.md                 Adding a production tenant and adapting the project
+├── CONVENTIONS.md                Naming, file layout and how to grow the project
+├── AGENTS.md                     Rules for AI agents that change this repository
 ├── .terraform.lock.hcl           Exact provider version and checksums
 ├── .tflint.hcl                   Linter rules
 └── .github/
@@ -399,19 +401,8 @@ checksums. The repository commits it, so your machine and the pipeline run the
 same provider. `terraform.tf` sets the minimum version, and the lock file sets
 the exact one.
 
-To move to a newer provider, run this on a branch and open a pull request with
-the result:
-
-```bash
-terraform init -upgrade
-```
-
-```bash
-terraform providers lock -platform=linux_amd64 -platform=darwin_arm64 -platform=darwin_amd64 -platform=windows_amd64
-```
-
-The second command records checksums for the pipeline's Linux runners and for
-your team's machines.
+[Upgrade the provider](runbooks/upgrade-the-provider.md) shows how to move to
+a newer version.
 
 ### 5.3 The pipelines
 
@@ -423,9 +414,9 @@ your team's machines.
 | **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if dev differs from `main` or prod differs from its last release | No |
 | **Terraform** | Called by the four above | Holds the init, plan and apply steps once | |
 
-The workflows run on GitHub Actions. Their logic lives in shell scripts that
-need `terraform` and `jq`, so you can call the same scripts from GitLab CI,
-Azure Pipelines or Bitbucket Pipelines.
+The workflows run on GitHub Actions and hold little logic. The scripts under
+`.github/scripts/` do the work, and the one that renders a plan needs only
+`terraform` and `jq`.
 
 The workflows and scripts are a reference implementation, provided as-is. Read
 them, test them against your own tenants, and adapt them to your platform and
@@ -613,9 +604,6 @@ git pull
   request gains a comment that quotes the error. Revert the change as above,
   or correct it in a new pull request. See
   [Recover from a failed apply](runbooks/recover-from-a-failed-apply.md).
-- A provider upgrade is the exception. Once an apply writes state with a newer
-  provider, an older provider refuses to read it. See
-  [Upgrade the provider](runbooks/upgrade-the-provider.md).
 
 ---
 
@@ -671,8 +659,6 @@ Run the drift check again. It passes and closes the issue.
   as a plan.
 - A drift issue for an environment stays open, and each run updates it, until a
   run finds no difference.
-- GitHub pauses scheduled workflows in a repository with no activity for 60
-  days.
 
 ---
 
@@ -764,7 +750,36 @@ in your next pull request.
 
 ---
 
-## 10. Cleaning up
+## 10. How a change reaches production
+
+Nothing in this section needs a second tenant. Read it to see where the
+session's workflow leads. [PRODUCTION.md](PRODUCTION.md) has the steps.
+
+| Step | Who | What happens |
+| --- | --- | --- |
+| 1 | Author | Opens a pull request. It gains a plan for dev and a plan for prod. |
+| 2 | Reviewer | Reads the code and both plans, then approves the pull request. |
+| 3 | Author | Merges. The pipeline applies to dev. Prod does not change. |
+| 4 | Team | Tests the change in dev. |
+| 5 | Release owner | Starts the **Release** workflow once dev holds what prod should receive. |
+| 6 | Pipeline | Checks that the commit is on `main` and that dev applied it, then shows the plan for prod. |
+| 7 | Approver | Reads the prod plan and approves. The approver is a named reviewer on the `prod` environment. |
+| 8 | Pipeline | Applies to prod with credentials that only this step can read, then publishes a release that lists the pull requests it delivered. |
+
+**Key points:**
+
+- Two people look at each change before prod: the reviewer of the pull request
+  and the approver of the release.
+- A merge never changes prod. A release does, and it carries every merged
+  change up to the commit it names.
+- The audit trail has three parts: the pull request holds the change, its
+  review and its plans; the release run holds the prod plan, the approver and
+  the apply log; the published release names what prod runs.
+- Plans for prod use credentials that can read and nothing more.
+
+---
+
+## 11. Cleaning up
 
 The pipelines create and change. Removing a whole environment is a deliberate
 act you run from your machine, with the variables from sections 4.3 and 4.4
@@ -788,11 +803,14 @@ Then remove what the session created outside Jamf:
 
 ---
 
-## 11. What's next
+## 12. What's next
 
 - **[Taking the project to production](PRODUCTION.md)**, the guide to adding a
   prod tenant, releasing changes to it with an approval, and swapping the
   state backend or CI platform for your own.
+- **[Conventions](CONVENTIONS.md)**, the rules for naming, file layout and
+  growth once the project is yours, and **[AGENTS.md](AGENTS.md)**, which
+  holds AI agents to those rules.
 - **[Runbooks](runbooks/README.md)**, short procedures for the tasks you
   repeat once this project runs your tenants: making and reverting changes,
   resolving drift, upgrading the provider, rotating credentials and adding an
