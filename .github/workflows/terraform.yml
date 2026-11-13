@@ -75,7 +75,8 @@ jobs:
       - name: Initialise
         run: terraform init
 
-      # -parallelism=1 sends one request at a time. The Jamf API returns errors
+      # -parallelism=1 sends one request at a time, on plan and on apply. That
+      # keeps the load on the Jamf API low and avoids the errors it returns
       # under concurrent requests.
       # Exit code 0 means no changes, 2 means changes, 1 means the plan failed.
       # The last line keeps a copy of any error for the pull request comment.

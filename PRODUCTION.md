@@ -152,11 +152,12 @@ holds years of configuration and the sandbox is empty.
 1. Run [jamformer](https://github.com/Jamf-Concepts/jamformer) against prod. It
    writes resource files in this project's layout, with import blocks beside
    them.
-2. On your machine, with prod credentials and the prod state selected, plan with
-   `-var-file=environments/prod.tfvars -parallelism=1`. Trim the generated configuration
-   until the plan shows imports and no other action.
-3. Apply from your machine. This is the one apply you run outside the
-   pipeline, because it must finish before dev sees the configuration.
+2. On your machine, with prod credentials and the prod state selected, plan
+   with `-var-file=environments/prod.tfvars -parallelism=1`. Trim the
+   generated configuration until the plan shows imports and no other action.
+3. Apply from your machine with the same two flags. This is the one apply you
+   run outside the pipeline, because it must finish before dev sees the
+   configuration.
 4. Delete the import blocks, then open a pull request with the configuration.
    The prod plan shows no changes. The dev plan creates every object, which
    brings the sandbox in line with production.
