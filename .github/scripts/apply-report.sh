@@ -2,6 +2,8 @@
 #
 # Records the result of an apply in the run summary and on the pull request
 # that introduced the commit, so the pull request shows where its change went.
+# A release applies many pull requests at once. Its notes list them, and the
+# newest one gets the comment.
 #
 # Usage: apply-report.sh <environment> <plan-had-changes> <apply-outcome>
 
@@ -30,20 +32,9 @@ fi
 
 cat apply.md >> "$GITHUB_STEP_SUMMARY"
 
-# Comment on each pull request this apply delivered. A merge to main delivers
-# the pull request behind its commit. A release delivers every pull request
-# merged since the previous release.
-commits="$COMMIT_SHA"
-if [[ -n "${RELEASE_NAME:-}" ]]; then
-  echo "Release \`$RELEASE_NAME\`." >> apply.md
-  previous="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2> /dev/null || true)"
-  if [[ -n "$previous" ]]; then
-    commits="$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$COMMIT_SHA" --jq '.commits[].sha')"
-  fi
-fi
-
-for commit in $commits; do
-  gh api "repos/$GITHUB_REPOSITORY/commits/$commit/pulls" --jq '.[].number'
-done | sort -un | while read -r pull_request; do
+# Comment on the pull request behind the commit. A commit pushed straight to
+# main has none.
+pull_request="$(gh api "repos/$GITHUB_REPOSITORY/commits/$COMMIT_SHA/pulls" --jq '.[0].number // empty')"
+if [[ -n "$pull_request" ]]; then
   "$(dirname "$0")/pr-comment.sh" "$pull_request" "apply-$environment" apply.md
-done
+fi

@@ -50,6 +50,8 @@ jobs:
     secrets: inherit
 
   # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  # The plan compares the pull request with prod, so it also lists changes
+  # that have merged and await a release.
   plan-prod:
     name: Prod
     if: vars.PROD_ENABLED == 'true'
@@ -58,5 +60,4 @@ jobs:
     with:
       environment: prod
       github_environment: prod-plan
-      plan_note: This plan compares the pull request with prod, so it includes changes that have merged and await a release.
     secrets: inherit

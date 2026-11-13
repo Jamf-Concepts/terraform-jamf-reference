@@ -36,7 +36,7 @@ job and the right action is to wait.
    ```
 
    Some backends tie the lock to a connection and have no such command. Follow
-   your backend's own procedure. Section 13.3 of the
+   your backend's own procedure. Section 12.3 of the
    [main README](../README.md) covers the backend the session uses.
 
 ## Check it worked

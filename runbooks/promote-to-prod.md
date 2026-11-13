@@ -64,9 +64,9 @@ Running the **Release** workflow starts the promotion. A reviewer on the
 
 ## Check it worked
 
-Each pull request in the release gains a comment: ✅ Applied to **prod**, with
-the release name. The workflow publishes a release named `prod-` and the date
-and time, and its notes list the pull requests.
+The workflow publishes a release named `prod-` and the date and time. Its
+notes list the pull requests it delivered, and the newest of them gains a
+comment: ✅ Applied to **prod**.
 
 ```bash
 gh release view

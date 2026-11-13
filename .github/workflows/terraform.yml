@@ -22,14 +22,6 @@ on:
         description: Branch, tag or commit to run. Defaults to the commit that started the workflow.
         type: string
         default: ""
-      plan_note:
-        description: A sentence shown under the plan heading.
-        type: string
-        default: ""
-      release_name:
-        description: Name of the release this apply belongs to. Set by the Release workflow.
-        type: string
-        default: ""
       apply:
         description: Apply the plan after rendering it.
         type: boolean
@@ -60,7 +52,6 @@ jobs:
       PG_CONN_STR: ${{ secrets.PG_CONN_STR }}
       PG_SCHEMA_NAME: ${{ inputs.environment }}
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || inputs.ref || github.sha }}
-      RELEASE_NAME: ${{ inputs.release_name }}
 
     steps:
       - uses: actions/checkout@v7
@@ -109,7 +100,7 @@ jobs:
 
       - name: Summarise the plan
         run: |
-          .github/scripts/plan-summary.sh tfplan "Terraform plan: ${{ inputs.environment }}" "${{ inputs.plan_note }}" > plan.md
+          .github/scripts/plan-summary.sh tfplan "Terraform plan: ${{ inputs.environment }}" > plan.md
           cat plan.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment the plan on the pull request

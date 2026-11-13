@@ -49,7 +49,7 @@ for the object.
   [Importing existing objects](https://registry.terraform.io/providers/jamf/jamfplatform/latest/docs/guides/importing)
   guide before you merge. Two resource types reset what you leave out.
 - **The object exists in one tenant and not the other.** Limit the import to
-  the tenant that holds it. Section 12.6 of the [main README](../README.md)
+  the tenant that holds it. Section 11.6 of the [main README](../README.md)
   shows the pattern.
 - **You need to import many objects.** Use
   [jamformer](https://github.com/Jamf-Concepts/jamformer).

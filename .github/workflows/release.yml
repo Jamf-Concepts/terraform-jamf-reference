@@ -103,7 +103,6 @@ jobs:
     with:
       environment: prod
       ref: ${{ needs.checks.outputs.commit }}
-      release_name: ${{ needs.checks.outputs.name }}
       apply: true
     secrets: inherit
 

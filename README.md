@@ -10,7 +10,7 @@ through pull requests. Pipelines check each change, show you the plan, apply it
 to a dev tenant, and promote a tested commit to prod when you run a release
 and a reviewer approves it.
 
-The session uses one sandbox tenant as dev. Section 12 holds every step that
+The session uses one sandbox tenant as dev. Section 11 holds every step that
 needs a second tenant, so you can skip it during the session and return to it
 later.
 
@@ -25,7 +25,7 @@ By the end of this session you will be able to:
 - Keep one configuration for several environments and vary values per
   environment
 - Change Jamf through a pull request and read the plan the pipeline posts
-- Revert a change you regret and recover from an apply that fails
+- Revert a change you regret, and know what to do when an apply fails
 - Detect drift on a schedule and decide how to resolve it
 - Bring an object that already exists in Jamf under Terraform management
   through a pull request
@@ -64,6 +64,10 @@ operate and explain to an auditor.
 The workflows run on GitHub Actions. Their logic lives in shell scripts that
 need `terraform` and `jq`, so you can call the same scripts from GitLab CI,
 Azure Pipelines or Bitbucket Pipelines.
+
+The workflows and scripts are a reference implementation, provided as-is. Read
+them, test them against your own tenants, and adapt them to your platform and
+your change policy before you rely on them.
 
 ---
 
@@ -107,7 +111,7 @@ Choose **GitHub.com**, **HTTPS** and **Login with a web browser**.
 ### 4.3 Create a Neon account
 
 [Neon](https://neon.com) hosts PostgreSQL. Its free plan covers this session.
-Neon stands in for the backend your organisation will choose, and section 13
+Neon stands in for the backend your organisation will choose, and section 12
 covers the swap to another one.
 
 1. Open [console.neon.tech/signup](https://console.neon.tech/signup).
@@ -319,7 +323,7 @@ gh secret set PG_CONN_STR --env dev --body "$PG_CONN_STR"
 > short. Do not copy that to production.** A plan on a pull request runs code
 > nobody has reviewed yet, and here it runs with credentials that can change
 > the tenant. Production uses two integrations: one that can read, for plans,
-> and one that can write, held behind an approval. Section 12.2 sets that up.
+> and one that can write, held behind an approval. Section 11.2 sets that up.
 > To give dev the same split, create a `dev-plan` environment with a read-only
 > integration, then add `github_environment: dev-plan` to the dev job in
 > `pull-request.yml` and in `drift.yml`, the way the prod jobs pass
@@ -440,7 +444,7 @@ your team's machines.
 | --- | --- | --- | --- |
 | **Pull request** | Each pull request to `main` | Checks formatting, validates, lints, then posts a plan per environment as a comment | No |
 | **Deploy** | Each merge to `main`, or on demand | Plans and applies to dev. Comments the result on the pull request. | Yes |
-| **Release** | On demand | Requires prod. Checks the commit, shows the prod plan, waits for approval, applies to prod, then publishes a release. Comments the result on each pull request in the release. | Yes |
+| **Release** | On demand | Requires prod. Checks the commit, shows the prod plan, waits for approval, applies to prod, then publishes a release that lists the pull requests it delivered. | Yes |
 | **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if dev differs from `main` or prod differs from its last release | No |
 | **Terraform** | Called by the four above | Holds the init, plan and apply steps once | |
 
@@ -620,78 +624,19 @@ git pull
   deleted returns as a new object with a new ID.
 - Squash merging makes this simple. Each pull request is one commit on `main`,
   so reverting the pull request undoes the whole change.
+- A plan can pass and the apply still fail, because the Jamf API enforces
+  rules that surface only when it receives the change. Terraform does not roll
+  back: objects that changed before the error keep their new values. The pull
+  request gains a comment that quotes the error. Revert the change as above,
+  or correct it in a new pull request. See
+  [Recover from a failed apply](runbooks/recover-from-a-failed-apply.md).
 - A provider upgrade is the exception. Once an apply writes state with a newer
   provider, an older provider refuses to read it. See
   [Upgrade the provider](runbooks/upgrade-the-provider.md).
 
 ---
 
-## 9. Recover from a failed apply
-
-A plan checks your change against the provider's schema. The Jamf API applies
-further rules, and some surface only during apply.
-
-On a new branch, edit `blueprints.tf`:
-
-```bash
-git switch -c relax-download
-```
-
-```hcl
-automatic_download                 = "Allowed"
-```
-
-```bash
-git commit -am "Relax automatic download"
-```
-
-```bash
-git push -u origin relax-download
-```
-
-```bash
-gh pr create --fill
-```
-
-The checks pass and the plan shows one update. Merge it:
-
-```bash
-gh pr merge --squash --delete-branch
-```
-
-```bash
-git switch main
-```
-
-```bash
-git pull
-```
-
-**Deploy** fails. The comment on the pull request quotes the error:
-
-```text
-[VALID_AUTOMATIC_ACTIONS]
-steps[0].components[0].configuration.automaticActions: If InstallOSUpdates
-is AlwaysOn, Download must be included and also AlwaysOn
-```
-
-Jamf rejected the blueprint, so the tenant still holds the old settings while
-`main` holds the new ones.
-
-**Key points:**
-
-- Terraform does not roll back. Resources that changed before the error keep
-  their new values, and the rest keep their old ones. State records what
-  happened.
-- Fix forward. Revert the commit as in section 8, or correct the value in a
-  new pull request. The next apply closes the gap.
-- Until you do, drift detection reports that dev differs from `main`.
-
-Revert the commit now, using the steps from section 8, and merge the revert.
-
----
-
-## 10. Detect and resolve drift
+## 9. Detect and resolve drift
 
 Drift is a difference between `main` and the tenant. Someone edits an object in
 the Jamf UI, or a merged change fails to apply.
@@ -748,7 +693,7 @@ Run the drift check again. It passes and closes the issue.
 
 ---
 
-## 11. Import an existing object
+## 10. Import an existing object
 
 Most tenants hold objects that predate Terraform. Importing one adds it to
 state without recreating it.
@@ -831,11 +776,11 @@ in your next pull request.
   `terraform plan -var-file=environments/dev.tfvars -parallelism=1 -generate-config-out=generated.tf`
   on your machine with the import block in place, then move the generated
   block into the right file.
-- For a whole tenant, use jamformer. Section 12.6 covers it.
+- For a whole tenant, use jamformer. Section 11.6 covers it.
 
 ---
 
-## 12. Add production
+## 11. Add production
 
 > **Requires prod.** Every step in this section needs a second tenant and
 > credentials for it. Skip the section during the session.
@@ -844,12 +789,12 @@ in your next pull request.
 > promote to a pilot group, read each prod plan in full, and treat a 🟠 replace
 > or 🔴 destroy row as a reason to stop and ask.
 
-### 12.1 Describe the prod tenant
+### 11.1 Describe the prod tenant
 
 Set the gateway URL, the environment ID and the pilot serial numbers of your
 production tenant in `environments/prod.tfvars`.
 
-### 12.2 Create two GitHub environments
+### 11.2 Create two GitHub environments
 
 | GitHub environment | Used by | Credentials | Protection |
 | --- | --- | --- | --- |
@@ -876,7 +821,7 @@ On GitHub, open **Settings**, **Environments**, **prod**, tick **Required
 reviewers** and add the people who approve production changes. GitHub offers
 required reviewers on private repositories in paid plans.
 
-### 12.3 Turn prod on
+### 11.3 Turn prod on
 
 ```bash
 gh variable set PROD_ENABLED --body true
@@ -884,7 +829,7 @@ gh variable set PROD_ENABLED --body true
 
 The workflows skip every prod job until this variable is `true`.
 
-### 12.4 How a change reaches prod
+### 11.4 How a change reaches prod
 
 A merge changes dev and nothing else. Prod changes when you run the
 **Release** workflow. You decide when that happens and how many merged changes
@@ -906,8 +851,7 @@ it carries.
    waits.
 5. A required reviewer opens the run, reads the prod plan, and clicks **Review
    deployments**, then **Approve and deploy**.
-6. **Release** applies to prod and comments the result on each pull request the
-   release contains.
+6. **Release** applies to prod.
 7. **Release** publishes a release named after the date and time in UTC, such
    as `prod-2026-11-13-1344`. Its notes list every pull request merged since
    the previous release. That list is your change record.
@@ -940,7 +884,7 @@ applies, so the latest release names what prod runs.
   that await a release do not count as drift.
 - A failed check or a rejected approval publishes nothing and changes nothing.
 
-### 12.5 Revert in prod
+### 11.5 Revert in prod
 
 Revert through a pull request, as in section 8, let dev apply it, then run a
 release. The revert of a bad change is a production change too, so it takes
@@ -960,7 +904,7 @@ and the workflow stops before it touches prod in that case. Use the revert.
 If the bad change has merged and no release contains it, prod never received
 it. Revert it and carry on.
 
-### 12.6 Import with two tenants
+### 11.6 Import with two tenants
 
 An import block names an ID, and each tenant assigns its own IDs. A block that
 is right for prod fails in dev.
@@ -1006,7 +950,7 @@ import {
 
 The prod plan imports the object and the dev plan creates it.
 
-### 12.7 Secrets that differ per tenant
+### 11.7 Secrets that differ per tenant
 
 Automated Device Enrollment and volume purchasing tokens come from Apple, and
 each tenant needs its own. Treat a token as a secret that differs per
@@ -1047,9 +991,9 @@ run it.
 
 ---
 
-## 13. Make it yours
+## 12. Make it yours
 
-### 13.1 Another state backend
+### 12.1 Another state backend
 
 The session stores state in PostgreSQL on Neon because it is free and quick to
 set up. Your organisation may prefer S3, Azure Storage, Google Cloud Storage
@@ -1074,14 +1018,14 @@ To switch:
 4. Run `terraform init -migrate-state` once per environment to copy the state
    across.
 
-### 13.2 State locks
+### 12.2 State locks
 
 Terraform locks the state for the length of a plan or an apply. A second run
 waits up to five minutes for the lock, then fails with
 `Error acquiring the state lock`.
 [Clear a state lock](runbooks/clear-a-state-lock.md) has the procedure.
 
-### 13.3 Notes on the session backend
+### 12.3 Notes on the session backend
 
 These apply to PostgreSQL on Neon and to no other backend.
 
@@ -1104,7 +1048,7 @@ These apply to PostgreSQL on Neon and to no other backend.
 - **New password.** In the Neon console, click **Connect**, then **Reset
   password**, and copy the new connection string.
 
-### 13.4 Another CI platform
+### 12.4 Another CI platform
 
 Each platform needs the same four things:
 
@@ -1122,7 +1066,7 @@ Each platform needs the same four things:
 
 ---
 
-## 14. Cleaning up
+## 13. Cleaning up
 
 The pipelines create and change. Removing a whole environment is a deliberate
 act you run from your machine, with the variables from sections 5.3 and 5.4
@@ -1146,7 +1090,7 @@ Then remove what the session created outside Jamf:
 
 ---
 
-## 15. What's next
+## 14. What's next
 
 - **[Runbooks](runbooks/README.md)**, short procedures for the tasks you
   repeat once this project runs your tenants: making and reverting changes,

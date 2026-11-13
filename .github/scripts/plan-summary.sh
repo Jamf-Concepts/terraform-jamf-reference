@@ -3,7 +3,7 @@
 # Renders a saved Terraform plan as Markdown: a headline, a table of every
 # resource the plan touches, and the full diff in a collapsed block.
 #
-# Usage: plan-summary.sh <plan-file> <title> [note]
+# Usage: plan-summary.sh <plan-file> <title>
 #
 # The script needs terraform and jq and nothing from GitHub, so it runs
 # unchanged on any CI system. Run it from the directory you ran
@@ -13,7 +13,6 @@ set -euo pipefail
 
 plan_file="$1"
 title="$2"
-note="${3:-}"
 
 # Comment bodies on most platforms stop at 65,536 characters.
 max_diff_characters=55000
@@ -68,10 +67,6 @@ icon() {
 
 echo "### $title"
 echo
-if [[ -n "$note" ]]; then
-  echo "$note"
-  echo
-fi
 
 if [[ -z "$changes" ]]; then
   echo "No changes. The tenant matches the configuration."
