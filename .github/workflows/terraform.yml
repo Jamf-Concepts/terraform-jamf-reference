@@ -67,6 +67,8 @@ jobs:
       - name: Initialise
         run: terraform init
 
+      # -parallelism=1 sends one request at a time. The Jamf API returns errors
+      # under concurrent requests.
       # Exit code 0 means no changes, 2 means changes, 1 means the plan failed.
       # The last line keeps a copy of any error for the pull request comment.
       - name: Plan
@@ -75,6 +77,7 @@ jobs:
           set +e
           terraform plan \
             -var-file="environments/${{ inputs.environment }}.tfvars" \
+            -parallelism=1 \
             -lock-timeout=5m \
             -detailed-exitcode \
             -out=tfplan \
@@ -113,7 +116,7 @@ jobs:
       - name: Apply
         id: apply
         if: inputs.apply && steps.plan.outputs.changes == 'true'
-        run: terraform apply -lock-timeout=5m tfplan 2> >(tee apply-errors.txt >&2)
+        run: terraform apply -parallelism=1 -lock-timeout=5m tfplan 2> >(tee apply-errors.txt >&2)
 
       - name: Report the apply
         if: always() && inputs.apply && steps.plan.outcome == 'success'

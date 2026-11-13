@@ -231,11 +231,14 @@ Terraform has been successfully initialized!
 ### 5.5 Plan from your machine
 
 ```bash
-terraform plan -var-file=environments/dev.tfvars
+terraform plan -var-file=environments/dev.tfvars -parallelism=1
 ```
 
-`-var-file` selects the environment. The plan should end with
-`Plan: 7 to add, 0 to change, 0 to destroy`.
+`-var-file` selects the environment. `-parallelism=1` makes Terraform send one
+request at a time. The Jamf API returns errors under concurrent requests, so
+use the flag on each plan, apply and destroy. The pipelines set it too.
+
+The plan should end with `Plan: 7 to add, 0 to change, 0 to destroy`.
 
 Stop there. You plan on your machine to check your work, and the pipeline
 applies.
@@ -740,7 +743,7 @@ in your next pull request.
   changes nothing in Jamf. An update beside it overwrites the object's settings
   with yours.
 - For an object you have not written configuration for, run
-  `terraform plan -var-file=environments/dev.tfvars -generate-config-out=generated.tf`
+  `terraform plan -var-file=environments/dev.tfvars -parallelism=1 -generate-config-out=generated.tf`
   on your machine with the import block in place, then move the generated
   block into the right file.
 - For a whole tenant, use jamformer. Section 12.6 covers it.
@@ -765,7 +768,7 @@ production tenant in `environments/prod.tfvars`.
 
 | GitHub environment | Used by | Credentials | Protection |
 | --- | --- | --- | --- |
-| `prod-plan` | Plans on pull requests, the preview before approval, drift detection | An integration with Read actions only | None |
+| `prod-plan` | Plans on pull requests, the preview before approval, drift detection | An integration with the Read action of each permission in section 4.3 and no other action | None |
 | `prod` | The apply | An integration with the permissions from section 4.3 | Required reviewers |
 
 Two environments keep the write credentials behind the approval. A plan on a
@@ -842,7 +845,7 @@ holds years of configuration and the sandbox is empty.
    writes resource files in this project's layout, with import blocks beside
    them.
 2. On your machine, with prod credentials and `PG_SCHEMA_NAME=prod`, plan with
-   `-var-file=environments/prod.tfvars`. Trim the generated configuration
+   `-var-file=environments/prod.tfvars -parallelism=1`. Trim the generated configuration
    until the plan shows imports and no other action.
 3. Apply from your machine. This is the one apply you run outside the
    pipeline, because it must finish before dev sees the configuration.
@@ -976,7 +979,7 @@ act you run from your machine, with the variables from sections 5.3 and 5.4
 set:
 
 ```bash
-terraform destroy -var-file=environments/dev.tfvars
+terraform destroy -var-file=environments/dev.tfvars -parallelism=1
 ```
 
 Type `yes` when prompted. If the destroy stops with an error on the device
