@@ -13,4 +13,10 @@ resource "jamfplatform_pro_category" "main" {
 
   name     = each.value
   priority = 9
+
+  # Other resources refer to this one. When a change removes it, Terraform
+  # updates those resources first and deletes this one last.
+  lifecycle {
+    create_before_destroy = true
+  }
 }

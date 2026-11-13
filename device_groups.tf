@@ -9,4 +9,10 @@ resource "jamfplatform_device_group" "pilot_computers" {
   description = "Managed by Terraform. Add and remove members in Jamf."
   group_type  = "static"
   device_type = "computer"
+
+  # Other resources refer to this one. When a change removes it, Terraform
+  # updates those resources first and deletes this one last.
+  lifecycle {
+    create_before_destroy = true
+  }
 }

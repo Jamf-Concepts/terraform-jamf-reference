@@ -221,6 +221,22 @@ The `name` attribute is what administrators and users see.
 - To refer to an object Terraform does not manage, import it first. See
   [Import an existing object](runbooks/import-an-existing-object.md).
 
+- Give every resource that others refer to this block. Categories, scripts
+  and device groups have it today.
+
+  ```hcl
+  lifecycle {
+    create_before_destroy = true
+  }
+  ```
+
+  Without it, a change that deletes an object and updates the objects that
+  used it runs in the wrong order: Terraform deletes first, then updates. Jamf
+  refuses to delete some objects while another still uses them, and the apply
+  fails. With the block, Terraform updates the users first and deletes last.
+  A revert is the common case, because it undoes a create and its references
+  in one step.
+
 ---
 
 ## 8. Variables, environments and payloads
@@ -285,6 +301,7 @@ agent, introduces it.
 - A second provider
 - Terraform workspaces
 - A provisioner, `local-exec` or `null_resource`
-- `lifecycle` rules such as `ignore_changes` or `prevent_destroy`
+- A `lifecycle` rule other than the one in section 7, such as
+  `ignore_changes` or `prevent_destroy`
 - An ID typed into the code
 - A change to the pipelines, `backend.tf`, `providers.tf` or `terraform.tf`

@@ -576,8 +576,10 @@ The plan is the mirror of the one in section 6:
 | 🟡 | update | `jamfplatform_pro_policy.flush_dns_cache` |
 | 🟡 | update | `jamfplatform_pro_script.flush_dns_cache` |
 
-One command undoes all three changes. The script and the policy return to
-Maintenance, and the category you created goes.
+One command undoes all three changes. Terraform moves the script and the
+policy back to Maintenance first and deletes the category last. The
+`lifecycle` block in `categories.tf` asks for that order, so Jamf never holds
+a script that points at a category that has gone.
 
 Merge it, and **Deploy** puts Jamf back as it was:
 

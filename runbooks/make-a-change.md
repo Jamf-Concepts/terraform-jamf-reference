@@ -21,7 +21,8 @@ You want to add, change or delete an object in Jamf.
    ```
 
 2. Edit the `.tf` files or the files under `support_files/`. To delete an
-   object, delete its resource block.
+   object, delete its resource block, and in the same change remove every
+   reference to it from other resources.
 
 3. Format, and plan if you want to see the result before the pipeline does:
 

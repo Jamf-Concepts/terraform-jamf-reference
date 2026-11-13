@@ -8,4 +8,10 @@ resource "jamfplatform_pro_script" "flush_dns_cache" {
   notes           = "Managed by Terraform"
   priority        = "AFTER"
   script_contents = file("${path.module}/support_files/scripts/flush_dns_cache.sh")
+
+  # Other resources refer to this one. When a change removes it, Terraform
+  # updates those resources first and deletes this one last.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
