@@ -4,9 +4,9 @@
 > session in [README.md](README.md). Complete that first.
 
 The session leaves you with one tenant, dev, changed through pull requests.
-This guide adds a production tenant, explains how a change reaches it, and
-lists what to adjust when you make the project your own. Section 3 gives the
-reason behind each design choice. [CONVENTIONS.md](CONVENTIONS.md) sets the
+Follow section 1 to add a production tenant and release changes to it.
+Section 2 lists what to adjust when you make the project your own, and
+section 3 gives the reason behind each design choice. [CONVENTIONS.md](CONVENTIONS.md) sets the
 rules for naming and layout as the project grows.
 
 > **Requires prod.** Every step in section 1 needs a second tenant and
@@ -33,8 +33,8 @@ Set the gateway URL and the environment ID of your production tenant in
 | `prod` | The apply | An integration with the permissions from section 3.4 of the README | Required reviewers |
 
 Two environments keep the write credentials behind the approval. A plan on a
-pull request runs code nobody has reviewed yet, so it gets credentials that can
-read and nothing more.
+pull request runs code nobody has reviewed yet, so it gets read-only
+credentials.
 
 ```bash
 gh api --method PUT "repos/{owner}/{repo}/environments/prod-plan" --silent
@@ -66,7 +66,7 @@ The workflows skip every prod job until this variable is `true`.
 
 ### 1.4 How a change reaches prod
 
-A merge changes dev and nothing else. Prod changes when you run the
+A merge changes dev only. Prod changes when you run the
 **Release** workflow. You decide when that happens and how many merged changes
 it carries.
 
@@ -74,7 +74,7 @@ it carries.
    prod. The prod plan compares the pull request with prod, so it also lists
    changes that have merged and await a release.
 2. You merge. **Deploy** applies the commit to dev. You test the change there.
-3. When dev holds what you want in prod, you start a release:
+3. Once dev holds what you want in prod, you start a release:
 
    ```bash
    gh workflow run release.yml
@@ -97,7 +97,7 @@ applies, so the latest release names what prod runs.
 
 **Key points:**
 
-- Dev is your test. Check each change on a dev device before you release.
+- Check each change on a dev device before you release.
 - A release carries every commit up to the one it names. To release some
   merged changes and hold back later ones, name the last commit you want:
 
@@ -108,9 +108,8 @@ applies, so the latest release names what prod runs.
   `git log --oneline` lists the commits on `main` with the ID of each.
 - You cannot release a later change without the earlier ones. If an earlier
   change is not ready, revert it as in section 7 of the README and merge it
-  again later, or
-  ship it to prod switched off or scoped to a pilot group through a value in
-  `environments/prod.tfvars`.
+  again later. Or ship it to prod switched off, or scoped to a pilot group,
+  through a value in `environments/prod.tfvars`.
 - Release often. A long gap between dev and prod makes each release larger and
   harder to review.
 - The prod job plans again after the approval and applies that plan. If the
@@ -118,14 +117,14 @@ applies, so the latest release names what prod runs.
   from the preview. The run summary shows the plan it applied.
 - Drift detection compares prod with the latest release, so merged changes
   that await a release do not count as drift.
-- A failed check or a rejected approval publishes nothing and changes nothing.
+- If a check fails or a reviewer rejects the release, the workflow publishes
+  nothing and prod stays as it was.
 
 ### 1.5 Revert in prod
 
 Revert through a pull request, as in section 7 of the README, let dev apply
-it, then run a
-release. The revert of a bad change is a production change too, so it takes
-the same route and the same approval.
+it, then run a release. The revert of a bad change is a production change
+too, so it takes the same route and the same approval.
 
 If prod is broken and cannot wait for that, release the last good commit:
 
@@ -136,10 +135,10 @@ gh workflow run release.yml -f commit=<commit-id>
 Prod returns to that commit while `main` stays ahead. Then revert the bad
 change on `main`, or the next release delivers it again. GitHub refuses to
 publish a release for a commit that predates a change to the pipeline files,
-and the workflow stops before it touches prod in that case. Use the revert.
+and the workflow stops before it touches prod. In that case, use the revert.
 
 If the bad change has merged and no release contains it, prod never received
-it. Revert it and carry on.
+it. Revert it on `main`.
 
 ### 1.6 Import with two tenants
 
@@ -155,14 +154,14 @@ holds years of configuration and the sandbox is empty.
 2. On your machine, with prod credentials and the prod state selected, plan
    with `-var-file=environments/prod.tfvars -parallelism=1`. Trim the
    generated configuration until the plan shows imports and no other action.
-3. Apply from your machine with the same two flags. This is the one apply you
-   run outside the pipeline, because it must finish before dev sees the
+3. Apply from your machine with the same two flags. You run this one apply
+   outside the pipeline, because it must finish before dev sees the
    configuration.
 4. Delete the import blocks, then open a pull request with the configuration.
    The prod plan shows no changes. The dev plan creates every object, which
    brings the sandbox in line with production.
 
-From then on, changes flow from dev to prod.
+From then on, you promote changes from dev to prod.
 
 **Adopting one object later.** Limit the import block to the tenant that holds
 the object. Declare the environment name as a variable:
@@ -235,8 +234,7 @@ run it.
 
 The session stores state in PostgreSQL on Neon because it is free and quick to
 set up. Your organisation may prefer S3, Azure Storage, Google Cloud Storage
-or HCP Terraform. The backend touches three places, and nothing else in the
-project depends on it:
+or HCP Terraform. Three places in the project depend on the backend:
 
 | Place | What is specific to the backend |
 | --- | --- |
@@ -265,13 +263,12 @@ waits up to five minutes for the lock, then fails with
 
 ### 2.3 Notes on the session backend
 
-These apply to PostgreSQL on Neon and to no other backend.
+These notes apply to PostgreSQL on Neon only.
 
 - **Connection string.** Copy it with **Connection pooling** off and change
   `sslmode=require` to `sslmode=verify-full`, as in section 4.4 of the
-  README. A pooled
-  string connects and plans, and its lock protects nothing. The pipeline
-  refuses a pooled string.
+  README. A pooled string connects and plans, and its lock protects nothing.
+  The pipeline refuses a pooled string.
 - **Locks.** The lock lives as long as the database connection that took it,
   so it ends when the run ends. `terraform force-unlock` does not work with
   this backend.
@@ -304,7 +301,7 @@ operate and explain to an auditor.
 | Decision | Choice | Reason |
 | --- | --- | --- |
 | Repositories | One | Policies, profiles, groups and scripts reference each other. One repository keeps a change and its dependencies in one pull request. |
-| Layout | Flat, no modules | Modules pay off once you deploy the same building blocks to many customers. One organisation with two tenants gains indirection and nothing else. This is also the layout [jamformer](https://github.com/Jamf-Concepts/jamformer) writes. |
+| Layout | Flat, no modules | Modules pay off once you deploy the same building blocks to many customers. For one organisation with two tenants, modules add indirection only. [jamformer](https://github.com/Jamf-Concepts/jamformer) writes the same flat layout. |
 | Environments | One configuration, one tfvars file per environment | Dev and prod run the same commit, so their configuration cannot diverge. A tfvars file holds what must differ. |
 | State | Remote, one state per environment | An apply to dev cannot touch prod. The lock stops two runs writing state at once. |
 | Secrets | Environment variables, stored as CI secrets | No secret enters the repository or a tfvars file. |

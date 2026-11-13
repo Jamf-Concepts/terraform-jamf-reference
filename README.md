@@ -1,11 +1,11 @@
 # From sandbox to production with Terraform and the Jamf Platform API
 
-> **You are on the `ref-jamfplatform-gitops` branch.** This is the companion
-> for the second Jamf IaC Enablement session. It follows
-> `ref-jamfplatform-starter`. Other branches in this repository are unrelated.
+> **You are on the `ref-jamfplatform-gitops` branch.** It accompanies the
+> second Jamf IaC Enablement session and follows `ref-jamfplatform-starter`.
+> Ignore the other branches in this repository.
 
-A Terraform project you can use as a template for production. You copy it into
-your own GitHub repository, store state in a remote backend, and change Jamf
+This branch holds a Terraform project you can use as a template for
+production. You copy it into your own GitHub repository, store state in a remote backend, and change Jamf
 through pull requests. Pipelines check each change, show you the plan, apply it
 to a dev tenant, and promote a tested commit to prod when you run a release
 and a reviewer approves it.
@@ -48,9 +48,9 @@ By the end of this session you will be able to:
 - A Jamf sandbox tenant. **Do not use production**
 - The tools from the first session: git, Terraform >= 1.14.0, VS Code with the
   HashiCorp Terraform extension
-- A GitHub account, working knowledge of GitHub, and the GitHub CLI (see below)
-- A Neon account, signed up with your GitHub account (see below)
-- Platform API credentials with the permissions below
+- A GitHub account, working knowledge of GitHub, and the GitHub CLI
+- A Neon account, signed up with your GitHub account
+- Platform API credentials
 
 ### 3.1 Learn the GitHub basics
 
@@ -88,7 +88,7 @@ Neon stands in for the backend your organisation will choose, and
 
 1. Open [console.neon.tech/signup](https://console.neon.tech/signup).
 2. Choose GitHub as the sign-in method and authorise Neon when GitHub asks.
-   Signing in with GitHub means no extra password to manage.
+   You then have no extra password to manage.
 3. If Neon walks you through creating a first project, use the values in
    step 5.
 4. Otherwise, on the **Projects** page, click **New project**.
@@ -123,10 +123,10 @@ Copy the client ID, the client secret and the environment ID.
 
 ## 4. Setup
 
-Setup builds the path a change travels. You create a repository, tell
+In setup you build the path a change travels. You create a repository, tell
 Terraform which tenant dev is, give it credentials and a place to keep state,
-then hand the same credentials to the pipeline. The first push proves the path
-by building the baseline in your sandbox.
+then hand the same credentials to the pipeline. Your first push proves the
+path: the pipeline builds the baseline in your sandbox.
 
 ### 4.1 Create your repository
 
@@ -151,7 +151,7 @@ git init -b main
 ```
 
 Create a private repository on GitHub from the folder. `--remote origin` links
-your local folder to it, so later pushes know where to go:
+your local folder to it, so git knows where to push:
 
 ```bash
 gh repo create jamf-iac --private --source . --remote origin
@@ -197,7 +197,7 @@ export JAMFPLATFORM_CLIENT_ID JAMFPLATFORM_CLIENT_SECRET
 1. In the [Neon console](https://console.neon.tech), open your project.
 2. Click **Connect** at the top of the left sidebar. The **Connect to your
    branch** dialog opens on the **Postgres database** tab.
-3. Check that **Database** shows `neondb` and the box below is labelled
+3. Check that **Database** shows `neondb` and the box below it reads
    **Connection string**.
 4. Turn the **Connection pooling** toggle off. The hostname in the box loses
    its `-pooler` suffix. Terraform's state lock does not work through the
@@ -251,7 +251,7 @@ is valid for your tenant.
 
 The plan should end with `Plan: 7 to add, 0 to change, 0 to destroy`.
 
-Stop there. You plan on your machine to check your work, and the pipeline
+Do not apply. You plan on your machine to check your work, and the pipeline
 applies.
 
 ### 4.6 Give the pipeline its secrets
@@ -322,7 +322,6 @@ Settings** blueprint.
 **Pilot Computers** is a static group with no members, and everything else
 targets it. Terraform manages the group and leaves its membership to you. Add
 a test Mac to it in the Jamf UI, and no later plan reports that as a change.
-You decide what Terraform owns, and it need not own everything.
 
 ### 4.8 Protect main
 
@@ -379,8 +378,7 @@ session.
 
 ### 5.1 What differs between environments
 
-Dev and prod share every `.tf` file. Three things differ, and each has one
-home:
+Dev and prod share every `.tf` file. Three things differ:
 
 | What differs | Where it lives |
 | --- | --- |
@@ -532,9 +530,9 @@ git pull
 ```
 
 `--squash` combines every commit on the branch into one commit on `main`,
-titled with the pull request title. One pull request then equals one commit,
-one deploy and one thing to revert. The commits you made along the way stay
-visible in the pull request.
+titled with the pull request title. Each pull request then becomes one commit
+and one deploy, and you revert it as one. The commits you made along the way
+stay visible in the pull request.
 
 The merge starts **Deploy**. Once it finishes, the pull request gains a second
 comment: ✅ Applied to **dev**. The pull request now records the change, its
@@ -631,7 +629,7 @@ gh issue list
 The issue shows the plan that would bring the tenant back in line with `main`:
 🟡 update `jamfplatform_pro_category.main["maintenance"]`.
 
-You now choose who wins.
+Choose which side wins:
 
 - **The configuration wins.** Run **Deploy** on `main`. Terraform renames the
   category back.
@@ -731,7 +729,7 @@ The new plan shows 🔵 import for the category, with an update beside it if the
 object's settings differ from your configuration. Merge the pull request, and
 **Deploy** records the category in state.
 
-An import block has done its job once the apply succeeds. Delete `imports.tf`
+You need the import block only until the apply succeeds. Delete `imports.tf`
 in your next pull request.
 
 **Key points:**
@@ -768,20 +766,19 @@ session's workflow leads. [PRODUCTION.md](PRODUCTION.md) has the steps.
 
 - Two people look at each change before prod: the reviewer of the pull request
   and the approver of the release.
-- A merge never changes prod. A release does, and it carries every merged
-  change up to the commit it names.
+- Only a release changes prod, and it carries every merged change up to the
+  commit it names.
 - The audit trail has three parts: the pull request holds the change, its
   review and its plans; the release run holds the prod plan, the approver and
   the apply log; the published release names what prod runs.
-- Plans for prod use credentials that can read and nothing more.
+- Plans for prod use read-only credentials.
 
 ---
 
 ## 11. Cleaning up
 
-The pipelines create and change. Removing a whole environment is a deliberate
-act you run from your machine, with the variables from sections 4.3 and 4.4
-set:
+The pipelines have no step that removes a whole environment. Run that from
+your machine, with the variables from sections 4.3 and 4.4 set:
 
 ```bash
 terraform destroy -var-file=environments/dev.tfvars -parallelism=1

@@ -49,7 +49,8 @@ jobs:
       environment: dev
     secrets: inherit
 
-  # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  # Requires prod. The workflow skips this job until the PROD_ENABLED
+  # repository variable is true.
   # The plan compares the pull request with prod, so it also lists changes
   # that have merged and await a release.
   plan-prod:

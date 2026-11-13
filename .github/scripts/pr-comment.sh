@@ -2,12 +2,12 @@
 #
 # Posts a Markdown file as a comment on a pull request. A later call with the
 # same key replaces that comment, so each pull request carries one comment per
-# key and no pile of stale ones.
+# key.
 #
 # Usage: pr-comment.sh <pull-request-number> <key> <markdown-file>
 #
-# This is the only script tied to GitHub. On another platform, replace the
-# three `gh api` calls with that platform's comment API.
+# On another platform, replace the three `gh api` calls with that platform's
+# comment API.
 
 set -euo pipefail
 

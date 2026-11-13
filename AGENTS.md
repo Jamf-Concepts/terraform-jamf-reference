@@ -43,7 +43,7 @@ real devices. Follow these rules over your own defaults.
 - A plan shows a replace or a destroy the task did not ask for.
 - The task needs something the conventions rule out.
 - The task needs a new variable that differs between environments, or a
-  change to how environments are set up.
+  change to the environment setup.
 - You cannot confirm an attribute in the provider documentation.
 
 ## What to report

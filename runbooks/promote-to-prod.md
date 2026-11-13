@@ -87,6 +87,8 @@ gh release view
   every commit up to the one it names. [Revert](revert-a-change.md) the
   earlier change and merge it again later, or ship it switched off or scoped
   to a pilot group through a value in `environments/prod.tfvars`.
-- **You approved and the apply failed.** No release is published. See
+- **You approved and the apply failed.** The workflow publishes no release.
+  See
   [Recover from a failed apply](recover-from-a-failed-apply.md).
-- **You rejected the release.** Prod is unchanged and nothing is published.
+- **You rejected the release.** Prod stays as it was and the workflow
+  publishes nothing.

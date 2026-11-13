@@ -10,7 +10,7 @@ Keep this rare. Each use bypasses review.
 ## Steps
 
 1. Tell the team before you touch Jamf. **The next apply overwrites your
-   change**, so nobody merges or runs a release until step 4 is done.
+   change**, so nobody merges or runs a release until you finish step 4.
 
 2. Make the change in the Jamf UI. Note what you changed and why.
 

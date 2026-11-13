@@ -36,7 +36,7 @@ Do not use this for a provider upgrade that has applied. See
 
 5. If prod received the change, run a release once dev has applied the
    revert. See [Promote a change to prod](promote-to-prod.md). If no release
-   contains the change, prod never received it and you are done.
+   contains the change, prod never received it and you have finished.
 
 ## Check it worked
 

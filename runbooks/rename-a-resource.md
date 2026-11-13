@@ -26,7 +26,7 @@ To rename the object in Jamf, change its `name` attribute and follow
    }
    ```
 
-3. Open a pull request. The plan must show 🔵 move and nothing else for the
+3. Open a pull request. The plan must show 🔵 move as the only action for the
    resource.
 
 4. Merge.

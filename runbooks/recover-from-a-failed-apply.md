@@ -47,7 +47,7 @@ environment shows no changes.
 
 ## If it goes wrong
 
-- **Drift detection opens an issue.** That is expected. The tenant differs from
+- **Drift detection opens an issue.** Expect this. The tenant differs from
   the configuration until an apply succeeds, and the issue closes after the
   fix.
 - **The same error returns after a retry.** The error is in the configuration.

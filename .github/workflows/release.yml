@@ -66,8 +66,8 @@ jobs:
           fi
 
       # GitHub does not let a pipeline tag a commit whose workflow files differ
-      # from main. Stop here, before prod changes, if the release could not be
-      # published afterwards.
+      # from main. Stop here, before prod changes, if the publish step would
+      # fail afterwards.
       - name: Check the pipeline files match main
         if: steps.name.outputs.publish == 'true'
         run: |

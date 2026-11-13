@@ -5,8 +5,8 @@
 #
 # Usage: plan-summary.sh <plan-file> <title>
 #
-# The script needs terraform and jq and nothing from GitHub, so it runs
-# unchanged on any CI system. Run it from the directory you ran
+# The script needs terraform and jq only, so it runs unchanged on any CI
+# system. Run it from the directory you ran
 # `terraform plan -out=<plan-file>` in.
 
 set -euo pipefail

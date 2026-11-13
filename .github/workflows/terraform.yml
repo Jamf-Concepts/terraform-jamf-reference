@@ -120,8 +120,8 @@ jobs:
           } > plan.md
           .github/scripts/pr-comment.sh "${{ github.event.pull_request.number }}" "plan-${{ inputs.environment }}" plan.md
 
-      # Terraform applies the saved plan, so it changes what the summary
-      # above lists and nothing else.
+      # Terraform applies the saved plan, so it changes only what the summary
+      # above lists.
       - name: Apply
         id: apply
         if: inputs.apply && steps.plan.outputs.changes == 'true'

@@ -62,5 +62,5 @@ The **Drift detection** run passes and closes the issue.
   keeps changing it. Agree who owns the object. If Terraform should not, see
   [Stop managing an object](stop-managing-an-object.md).
 - **Prod shows drift right after a failed release.** The apply stopped
-  part-way, and no release was published. See
+  part-way, and the workflow published no release. See
   [Recover from a failed apply](recover-from-a-failed-apply.md).

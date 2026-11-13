@@ -35,7 +35,7 @@ management without recreating it.
 
 5. Merge.
 
-6. Delete the import block in your next pull request. It has done its job.
+6. Delete the import block in your next pull request. You no longer need it.
 
 ## Check it worked
 

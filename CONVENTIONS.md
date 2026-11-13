@@ -1,14 +1,14 @@
 # Conventions
 
-How to name things, where to put them, and what to do as the project grows.
-These rules apply to everyone who changes this repository, people and AI
-agents alike. A project that follows one set of rules stays readable at 500
-resources. A project where each author picks their own does not.
+This document sets how you name things, where you put them, and what you do
+as the project grows. The rules apply to everyone who changes this
+repository, people and AI agents alike. One set of rules keeps a project
+readable at 500 resources.
 
 [HashiCorp's Terraform style guide](https://developer.hashicorp.com/terraform/language/style)
 covers formatting and general naming, and `terraform fmt` and `tflint` enforce
 part of it on each pull request. This document adds the rules specific to Jamf
-and to this project. Where the two disagree, this document wins.
+and to this project. If the two disagree, follow this document.
 
 ---
 
@@ -77,8 +77,8 @@ policies_software.tf
   words: `macos_configuration_profiles_security.tf`, `scripts_maintenance.tf`.
 - **Lower case, underscores, one or two words.**
 
-Do not split by environment, team, author, date or ticket number. Those change
-over time and the purpose of an object does not.
+Do not split by environment, team, author, date or ticket number. Those
+change over time. The purpose of an object stays the same.
 
 Moving a resource block from one file to another changes nothing in Jamf.
 Terraform identifies a resource by its type and name, and the file it sits in
@@ -92,8 +92,9 @@ support_files/scripts/security/rotate_recovery_key.sh
 ```
 
 If files split by purpose still feel too large, or plans take many minutes,
-the project may have outgrown one state. Splitting a project across states is
-a design change with real costs. Take advice before you start.
+the project may have outgrown one state. Splitting a project across states
+changes how each plan, apply and reference works. Take advice before you
+start.
 
 ---
 
@@ -177,8 +178,8 @@ Write one resource block per object when each object has its own settings.
 Policies, configuration profiles, blueprints and PreStage enrollments fit.
 
 Do not build a map of settings to generate policies or profiles from one
-block. It saves lines and costs clarity: a reader can no longer see what one
-policy does, and a plan no longer shows which line of code caused a change.
+block. A reader can no longer see what one policy does, and a plan no longer
+shows which line of code caused a change.
 
 Use `count` to switch one resource on or off. Do not use it to create several.
 
@@ -191,7 +192,7 @@ The `name` attribute is what administrators and users see.
 - Write it the way you would type it in the Jamf UI: **Login Window Banner**.
 - Leave out the environment. Dev and prod are separate tenants, and the same
   name in each makes them comparable.
-- Leave out markers such as `TF` or `[Terraform]`. Where the object has a
+- Leave out markers such as `TF` or `[Terraform]`. If the object has a
   description or notes field, write `Managed by Terraform` there, so someone
   in the UI knows where to make changes.
 - Name a group for what it contains: **Pilot Computers**, **macOS 15
@@ -293,9 +294,8 @@ appears in the code. Section 1.6 of [PRODUCTION.md](PRODUCTION.md) shows it.
 
 ## 11. What needs a team decision
 
-Each item below changes how the project works for everyone. None is wrong in
-itself. Agree it as a team and record the decision here before anyone, or any
-agent, introduces it.
+Each item below changes how the project works for everyone. Agree it as a
+team and record the decision here before anyone, or any agent, introduces it.
 
 - A module, or `.tf` files in a subfolder
 - A second provider
