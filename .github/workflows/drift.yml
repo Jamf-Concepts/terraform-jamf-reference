@@ -11,7 +11,6 @@ on:
 
 permissions:
   contents: read
-  deployments: read
   issues: write
 
 jobs:
@@ -24,27 +23,19 @@ jobs:
     secrets: inherit
 
   # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
-  # Prod should match the last release that applied, so the check plans that
-  # release. A release that failed its checks or was rejected does not count.
+  # Prod should match the latest release, so the check plans that release.
   released:
-    name: Find the release in prod
+    name: Find the latest release
     if: vars.PROD_ENABLED == 'true'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.find.outputs.tag }}
     steps:
-      - name: Find the last successful prod deployment
+      - name: Find the latest release
         id: find
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          for deployment in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=prod&per_page=30" --jq '.[].id'); do
-            state="$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" --jq '.[0].state')"
-            if [[ "$state" == "success" ]]; then
-              echo "tag=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment" --jq .ref)" >> "$GITHUB_OUTPUT"
-              break
-            fi
-          done
+        run: echo "tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName || true)" >> "$GITHUB_OUTPUT"
 
   prod:
     name: Prod

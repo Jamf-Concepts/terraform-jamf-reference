@@ -26,9 +26,8 @@ The steps use `stage` as the name.
    gh secret set JAMFPLATFORM_CLIENT_SECRET --env stage
    ```
 
-   ```bash
-   gh secret set PG_CONN_STR --env stage
-   ```
+   Store the state backend credentials the same way, under the secret name
+   your pipeline reads for the backend.
 
 3. On a new branch, copy `environments/dev.tfvars` to
    `environments/stage.tfvars` and set the tenant's gateway URL, environment
@@ -60,7 +59,8 @@ The steps use `stage` as the name.
    ```
 
    A release checks that dev applied a commit before prod receives it. To make
-   stage part of that test, release only after the **Stage** job succeeds.
+   stage part of that test, start a release only after the **Stage** job
+   succeeds.
 
 6. Add a drift job to `.github/workflows/drift.yml`:
 

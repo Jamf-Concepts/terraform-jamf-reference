@@ -26,29 +26,18 @@ job and the right action is to wait.
    gh run cancel <run-id>
    ```
 
-4. Try again. With the PostgreSQL backend the lock lives as long as the
-   database connection that took it, so it ends when the run ends.
+4. Try again.
 
-5. If nothing is running and the lock remains, a connection is stuck open. End
-   it from the Neon console, in **SQL Editor**:
+5. If nothing is running and the lock remains, it is stale. Clear it from your
+   machine with the lock ID from the error message:
 
-   ```sql
-   SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory';
+   ```bash
+   terraform force-unlock <lock-id>
    ```
 
-   This ends every session that holds a Terraform lock in that database, for
-   every environment that stores state there. Check step 1 for each of them
-   first.
-
-**On other backends.** S3, Azure Storage and Google Cloud Storage can keep a
-lock after a run dies. Clear it from your machine with the ID from the error
-message, after step 1 confirms nothing is running:
-
-```bash
-terraform force-unlock <lock-id>
-```
-
-The PostgreSQL backend does not support this command.
+   Some backends tie the lock to a connection and have no such command. Follow
+   your backend's own procedure. Section 13.3 of the
+   [main README](../README.md) covers the backend the session uses.
 
 ## Check it worked
 
@@ -60,7 +49,10 @@ The plan runs.
 
 ## If it goes wrong
 
-- **You ended the session of a live apply.** That apply fails part-way. See
-  [Recover from a failed apply](recover-from-a-failed-apply.md).
+- **You unlocked under a live apply.** Two runs may have written state, and the
+  apply may have failed part-way. Plan the environment, read every row, and
+  see [Recover from a failed apply](recover-from-a-failed-apply.md). If the
+  plan wants to create objects that exist, restore the previous state version
+  from your backend.
 - **The lock returns each time.** Two schedules or two people overlap. Check
   for a second copy of the pipeline, such as a fork with the same secrets.

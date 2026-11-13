@@ -2,7 +2,7 @@
 # one, so the steps exist once.
 #
 #   plan only       pull requests, and the preview before a prod approval
-#   plan and apply  merges to main (dev) and published releases (prod)
+#   plan and apply  merges to main (dev) and releases (prod)
 #   plan as drift   the daily drift check
 
 name: Terraform
@@ -24,6 +24,10 @@ on:
         default: ""
       plan_note:
         description: A sentence shown under the plan heading.
+        type: string
+        default: ""
+      release_name:
+        description: Name of the release this apply belongs to. Set by the Release workflow.
         type: string
         default: ""
       apply:
@@ -51,10 +55,12 @@ jobs:
       TF_INPUT: "false"
       JAMFPLATFORM_CLIENT_ID: ${{ secrets.JAMFPLATFORM_CLIENT_ID }}
       JAMFPLATFORM_CLIENT_SECRET: ${{ secrets.JAMFPLATFORM_CLIENT_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+      # State backend. Replace these two lines when you change backend.
       PG_CONN_STR: ${{ secrets.PG_CONN_STR }}
       PG_SCHEMA_NAME: ${{ inputs.environment }}
-      GH_TOKEN: ${{ github.token }}
-      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || inputs.ref || github.sha }}
+      RELEASE_NAME: ${{ inputs.release_name }}
 
     steps:
       - uses: actions/checkout@v7
@@ -65,8 +71,9 @@ jobs:
         with:
           terraform_wrapper: false
 
-      # A pooled Neon connection string connects but never holds the state
-      # lock, so two runs could write state at once. Stop before that happens.
+      # State backend. Delete this step when you change backend. A pooled Neon
+      # connection string connects but never holds the state lock, so two runs
+      # could write state at once. Stop before that happens.
       - name: Check the state connection string
         run: |
           if [[ "$PG_CONN_STR" == *-pooler.* ]]; then

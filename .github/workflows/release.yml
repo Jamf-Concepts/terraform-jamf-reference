@@ -1,12 +1,19 @@
-# Requires prod. Runs when someone publishes a release. Promotes the released
-# commit to prod once a reviewer approves. A release names a commit on main, so
-# prod receives a commit that dev has already applied.
+# Requires prod. Run this workflow by hand to promote a commit on main to prod.
+# It checks the commit, shows the prod plan, waits for a reviewer, applies,
+# and then publishes a release named prod-<date>-<time>. A release exists only
+# for a commit that prod has applied, so the latest release names what prod
+# runs. Releasing the latest release again applies it again and publishes
+# nothing new.
 
 name: Release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Commit on main to release. Leave empty for the latest.
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -18,24 +25,60 @@ jobs:
     name: Check the release
     if: vars.PROD_ENABLED == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.commit.outputs.commit }}
+      name: ${{ steps.name.outputs.name }}
+      publish: ${{ steps.name.outputs.publish }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
 
-      # A tag can point at any commit, including one on an unmerged branch.
+      - name: Find the commit
+        id: commit
+        env:
+          REQUESTED: ${{ inputs.commit }}
+        run: echo "commit=$(git rev-parse --verify "${REQUESTED:-origin/main}^{commit}")" >> "$GITHUB_OUTPUT"
+
       - name: Check the commit is on main
         run: |
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Release $GITHUB_REF_NAME points at a commit that is not on main."
+          if ! git merge-base --is-ancestor "${{ steps.commit.outputs.commit }}" origin/main; then
+            echo "::error::The commit is not on main."
+            exit 1
+          fi
+
+      # A new release gets the date and time in UTC, for example
+      # prod-2026-11-13-1344. The latest release keeps its name when you
+      # release it again.
+      - name: Name the release
+        id: name
+        run: |
+          latest="$(gh release view --json tagName --jq .tagName 2> /dev/null || true)"
+          if [[ -n "$latest" && "$(git rev-parse "$latest^{commit}")" == "${{ steps.commit.outputs.commit }}" ]]; then
+            echo "name=$latest" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=prod-$(date -u +%Y-%m-%d-%H%M)" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # GitHub does not let a pipeline tag a commit whose workflow files differ
+      # from main. Stop here, before prod changes, if the release could not be
+      # published afterwards.
+      - name: Check the pipeline files match main
+        if: steps.name.outputs.publish == 'true'
+        run: |
+          if ! git diff --quiet "${{ steps.commit.outputs.commit }}" origin/main -- .github/workflows; then
+            echo "::error::The pipeline has changed since this commit, so the release cannot be published for it. Release a newer commit, or revert the unwanted change on main."
             exit 1
           fi
 
       - name: Check dev applied the commit
         run: |
-          successes="$(gh run list --workflow deploy.yml --commit "$GITHUB_SHA" --status success --json databaseId --jq length)"
+          successes="$(gh run list --workflow deploy.yml --commit "${{ steps.commit.outputs.commit }}" --status success --json databaseId --jq length)"
           if [[ "$successes" -eq 0 ]]; then
             echo "::error::No successful Deploy run exists for this commit. Release a commit that dev has applied."
             exit 1
@@ -49,14 +92,35 @@ jobs:
     with:
       environment: prod
       github_environment: prod-plan
+      ref: ${{ needs.checks.outputs.commit }}
     secrets: inherit
 
   # Waits for a required reviewer on the prod GitHub environment.
   prod:
     name: Prod
-    needs: prod-plan
+    needs: [checks, prod-plan]
     uses: ./.github/workflows/terraform.yml
     with:
       environment: prod
+      ref: ${{ needs.checks.outputs.commit }}
+      release_name: ${{ needs.checks.outputs.name }}
       apply: true
     secrets: inherit
+
+  # Tags the commit and lists the pull requests it delivered.
+  publish:
+    name: Publish the release
+    needs: [checks, prod]
+    if: needs.checks.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Publish
+        run: |
+          gh release create "${{ needs.checks.outputs.name }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "${{ needs.checks.outputs.commit }}" \
+            --generate-notes

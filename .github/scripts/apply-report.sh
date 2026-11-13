@@ -33,17 +33,13 @@ cat apply.md >> "$GITHUB_STEP_SUMMARY"
 # Comment on each pull request this apply delivered. A merge to main delivers
 # the pull request behind its commit. A release delivers every pull request
 # merged since the previous release.
-if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-  echo "Release \`$GITHUB_REF_NAME\`." >> apply.md
-  previous="$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name' \
-    | grep -A1 -x -F "$GITHUB_REF_NAME" | tail -n +2 || true)"
+commits="$COMMIT_SHA"
+if [[ -n "${RELEASE_NAME:-}" ]]; then
+  echo "Release \`$RELEASE_NAME\`." >> apply.md
+  previous="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2> /dev/null || true)"
   if [[ -n "$previous" ]]; then
-    commits="$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$GITHUB_REF_NAME" --jq '.commits[].sha')"
-  else
-    commits="$GITHUB_SHA"
+    commits="$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$COMMIT_SHA" --jq '.commits[].sha')"
   fi
-else
-  commits="$GITHUB_SHA"
 fi
 
 for commit in $commits; do

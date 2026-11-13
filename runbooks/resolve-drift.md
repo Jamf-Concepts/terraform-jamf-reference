@@ -8,7 +8,7 @@ detection** run failed.
 ## Steps
 
 1. Open the issue and read the plan. Dev should match `main` and prod should
-   match the last release that applied. The plan shows what applying that
+   match the latest release. The plan shows what applying that
    again would change, which is the reverse of the drift.
 
    ```bash
@@ -27,20 +27,21 @@ detection** run failed.
      gh workflow run deploy.yml
      ```
 
-     For prod, run the latest release again. It waits for approval.
+     For prod, release the latest release again. The workflow applies it,
+     waits for approval, and publishes nothing new.
 
      ```bash
-     gh run list --workflow release.yml --status success --limit 1
+     gh release view --json tagName --jq .tagName
      ```
 
      ```bash
-     gh run rerun <run-id>
+     gh workflow run release.yml -f commit=<release-tag>
      ```
 
    - **The change in Jamf wins.** Copy it into the configuration and follow
      [Make a change](make-a-change.md). The plan on that pull request must
      show no changes for the drifted object. If it shows changes, your code
-     does not match Jamf yet. For prod, publish a release afterwards.
+     does not match Jamf yet. For prod, run a release afterwards.
 
 4. Run the check again:
 
@@ -60,6 +61,6 @@ The **Drift detection** run passes and closes the issue.
 - **Drift returns each day on the same object.** Someone, or another system,
   keeps changing it. Agree who owns the object. If Terraform should not, see
   [Stop managing an object](stop-managing-an-object.md).
-- **Prod shows drift right after a rejected or failed release.** The check
-  compares prod with the last release that applied, so this is real drift.
-  Follow the steps above.
+- **Prod shows drift right after a failed release.** The apply stopped
+  part-way, and no release was published. See
+  [Recover from a failed apply](recover-from-a-failed-apply.md).

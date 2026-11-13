@@ -32,18 +32,18 @@ environment that uses the credential: `dev`, and for production both
 
 4. Revoke the old secret or delete the old integration in Jamf Account.
 
-## State database password
+## State backend credentials
 
 1. Check that no pipeline run is in progress.
 
-2. In the Neon console, click **Connect**, then **Reset password**. Copy the new
-   connection string with **Connection pooling** off, and change
-   `sslmode=require` to `sslmode=verify-full`.
+2. Issue new credentials in your state backend. Section 13.3 of the
+   [main README](../README.md) covers the backend the session uses.
 
-3. Store it in every GitHub environment that uses that database:
+3. Store them in every GitHub environment that reads that state. Use the name
+   of the secret your pipeline reads for the backend:
 
    ```bash
-   gh secret set PG_CONN_STR --env <environment>
+   gh secret set <backend-secret> --env <environment>
    ```
 
 4. Prove it:
@@ -51,6 +51,8 @@ environment that uses the credential: `dev`, and for production both
    ```bash
    gh workflow run drift.yml
    ```
+
+5. Revoke the old credentials in the backend.
 
 ## Apple tokens
 
@@ -74,7 +76,7 @@ The **Drift detection** run passes for each environment you updated.
 
 - **The run fails with an authentication error.** The secret in GitHub does not
   match. Set it again. GitHub cannot show you a stored secret.
-- **The run fails with `PG_CONN_STR points at a connection pooler`.** You
-  copied the pooled string. Turn **Connection pooling** off and copy again.
+- **The run cannot reach the state.** The backend secret does not match. Set
+  it again, in the form your backend expects.
 - **You revoked the old secret first.** Pipelines fail until you store the new
   one. Nothing in Jamf changes meanwhile.

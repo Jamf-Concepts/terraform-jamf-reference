@@ -23,7 +23,7 @@ pull request carries a comment that starts ❌ The apply failed.
      value the API accepts.
    - **Withdraw the change.** Follow [Revert a change](revert-a-change.md).
 
-   A fix for prod reaches it through a new release. See
+   A fix for prod reaches it through a release. See
    [Promote a change to prod](promote-to-prod.md).
 
 4. If the error was temporary, such as a timeout, run it again with no code
@@ -33,14 +33,11 @@ pull request carries a comment that starts ❌ The apply failed.
    gh workflow run deploy.yml
    ```
 
-   For prod, run the failed release again. It waits for approval again.
+   For prod, start the release again with the same commit. It waits for
+   approval again.
 
    ```bash
-   gh run list --workflow release.yml --limit 3
-   ```
-
-   ```bash
-   gh run rerun <run-id>
+   gh workflow run release.yml -f commit=<commit-id>
    ```
 
 ## Check it worked

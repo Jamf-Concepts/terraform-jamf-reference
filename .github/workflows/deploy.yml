@@ -1,5 +1,5 @@
 # Runs on every merge to main and applies the merged commit to dev. Prod does
-# not follow a merge. Publishing a release promotes a commit to prod. See
+# not follow a merge. The Release workflow promotes a commit to prod. See
 # release.yml.
 
 name: Deploy

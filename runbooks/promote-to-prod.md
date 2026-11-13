@@ -5,18 +5,22 @@
 One or more changes have merged and applied to dev, you have tested them
 there, and you want them in prod.
 
-Publishing a release starts the promotion. A reviewer on the `prod`
-environment approves it.
+Running the **Release** workflow starts the promotion. A reviewer on the
+`prod` environment approves it.
 
 ## Steps
 
-### Publish the release
+### Start the release
 
 1. Check dev. Confirm each change in the Jamf UI of the dev tenant and on a
    test device.
 
 2. See what the release will contain: every pull request merged since the last
    release.
+
+   ```bash
+   git fetch --tags
+   ```
 
    ```bash
    gh release view --json tagName --jq .tagName
@@ -26,17 +30,18 @@ environment approves it.
    git log --oneline <last-release-tag>..origin/main
    ```
 
-3. Publish. Name the release `prod-` and the date.
+3. Start the release. On GitHub, the same control is **Actions**, **Release**,
+   **Run workflow**.
 
    ```bash
-   gh release create prod-<yyyy-mm-dd> --generate-notes
+   gh workflow run release.yml
    ```
 
    To hold back the newest changes, name the last commit you want. The first
    column of the `git log` output above is the commit ID.
 
    ```bash
-   gh release create prod-<yyyy-mm-dd> --generate-notes --target <commit-id>
+   gh workflow run release.yml -f commit=<commit-id>
    ```
 
 ### Approve the release
@@ -51,8 +56,8 @@ environment approves it.
    gh run view <run-id> --web
    ```
 
-5. Open the **Prod preview** job summary and read the plan. Compare it with the
-   release notes. Each row should trace to a pull request in the notes.
+5. Open the **Prod preview** job summary and read the plan. Each row should
+   trace to a pull request from step 2.
 
 6. Click **Review deployments**, tick **prod**, and click **Approve and
    deploy**. To refuse, click **Reject**.
@@ -60,27 +65,28 @@ environment approves it.
 ## Check it worked
 
 Each pull request in the release gains a comment: ✅ Applied to **prod**, with
-the release name. The run summary of the **Prod** job shows the plan it
-applied.
+the release name. The workflow publishes a release named `prod-` and the date
+and time, and its notes list the pull requests.
+
+```bash
+gh release view
+```
 
 ## If it goes wrong
 
-- **Check the release fails: the commit is not on main.** The tag points at a
-  branch commit. Delete the release and publish it from `main`.
-
-  ```bash
-  gh release delete <tag> --cleanup-tag --yes
-  ```
-
+- **Check the release fails: the commit is not on main.** Release a commit
+  from `main`.
 - **Check the release fails: no successful Deploy run.** Dev has not applied
-  that commit. Fix dev first, then delete the release and publish again.
+  that commit. Fix dev first, then start the release again.
+- **Check the release fails: the pipeline has changed since this commit.**
+  GitHub refuses to publish a release for a commit whose pipeline files differ
+  from `main`. Release a newer commit.
 - **The preview shows a change that is in no pull request.** Prod has drifted.
   Reject, then see [Resolve drift](resolve-drift.md).
 - **An earlier change is not ready and a later one is.** A release carries
   every commit up to the one it names. [Revert](revert-a-change.md) the
   earlier change and merge it again later, or ship it switched off or scoped
   to a pilot group through a value in `environments/prod.tfvars`.
-- **You approved and the apply failed.** See
+- **You approved and the apply failed.** No release is published. See
   [Recover from a failed apply](recover-from-a-failed-apply.md).
-- **You rejected the release.** Prod is unchanged. Delete the release so its
-  tag does not suggest prod runs it.
+- **You rejected the release.** Prod is unchanged and nothing is published.

@@ -7,8 +7,8 @@
 A Terraform project you can use as a template for production. You copy it into
 your own GitHub repository, store state in a remote backend, and change Jamf
 through pull requests. Pipelines check each change, show you the plan, apply it
-to a dev tenant, and promote a tested commit to prod when you publish a
-release and a reviewer approves it.
+to a dev tenant, and promote a tested commit to prod when you run a release
+and a reviewer approves it.
 
 The session uses one sandbox tenant as dev. Section 12 holds every step that
 needs a second tenant, so you can skip it during the session and return to it
@@ -57,7 +57,7 @@ operate and explain to an auditor.
 | State | Remote, one state per environment | An apply to dev cannot touch prod. The lock stops two runs writing state at once. |
 | Secrets | Environment variables, stored as CI secrets | No secret enters the repository or a tfvars file. |
 | Branching | One long-lived branch, `main` | Short-lived branches merge through pull requests. Environment branches drift apart and need merges to promote. |
-| Promotion | A merge applies to dev. Publishing a release promotes a commit on `main` to prod, after an approval. | You choose when prod changes and how many merged changes go together. The release is the change record and the approval is the audit record. Every CI platform can run a pipeline on a tag and gate it. |
+| Promotion | A merge applies to dev. Running a release promotes a commit on `main` to prod, after an approval. | You choose when prod changes and how many merged changes go together. The release is the change record and the approval is the audit record. Every CI platform can run a pipeline on demand and gate it. |
 | Rollback | Revert the commit through a pull request | The revert gets the same checks, plan and approval as any change. |
 | Who applies | The pipeline | People plan on their own machines and never apply. State and the audit trail stay in one place. |
 
@@ -440,7 +440,7 @@ your team's machines.
 | --- | --- | --- | --- |
 | **Pull request** | Each pull request to `main` | Checks formatting, validates, lints, then posts a plan per environment as a comment | No |
 | **Deploy** | Each merge to `main`, or on demand | Plans and applies to dev. Comments the result on the pull request. | Yes |
-| **Release** | Each published release | Requires prod. Checks the release, shows the prod plan, waits for approval, applies to prod. Comments the result on each pull request in the release. | Yes |
+| **Release** | On demand | Requires prod. Checks the commit, shows the prod plan, waits for approval, applies to prod, then publishes a release. Comments the result on each pull request in the release. | Yes |
 | **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if dev differs from `main` or prod differs from its last release | No |
 | **Terraform** | Called by the four above | Holds the init, plan and apply steps once | |
 
@@ -868,10 +868,9 @@ gh api --method PUT "repos/{owner}/{repo}/environments/prod-plan" --silent
 gh api --method PUT "repos/{owner}/{repo}/environments/prod" --silent
 ```
 
-Store `JAMFPLATFORM_CLIENT_ID`, `JAMFPLATFORM_CLIENT_SECRET` and `PG_CONN_STR`
-in each, as in section 5.6, with `--env prod-plan` and `--env prod`. Use a
-separate database for prod state if your organisation separates access to
-production data.
+Store the same three secrets in each, as in section 5.6, with
+`--env prod-plan` and `--env prod`. Keep prod state apart from dev state if
+your organisation separates access to production data.
 
 On GitHub, open **Settings**, **Environments**, **prod**, tick **Required
 reviewers** and add the people who approve production changes. GitHub offers
@@ -887,32 +886,35 @@ The workflows skip every prod job until this variable is `true`.
 
 ### 12.4 How a change reaches prod
 
-A merge changes dev and nothing else. Prod changes when you publish a release:
-a named tag on a commit in `main`. You decide when that happens and how many
-merged changes it carries.
+A merge changes dev and nothing else. Prod changes when you run the
+**Release** workflow. You decide when that happens and how many merged changes
+it carries.
 
 1. You open a pull request. It gains two plan comments, one for dev and one for
    prod. The prod plan compares the pull request with prod, so it also lists
    changes that have merged and await a release.
 2. You merge. **Deploy** applies the commit to dev. You test the change there.
-3. When dev holds what you want in prod, you publish a release:
+3. When dev holds what you want in prod, you start a release:
 
    ```bash
-   gh release create prod-2026-11-13 --generate-notes
+   gh workflow run release.yml
    ```
 
-   `--generate-notes` lists every pull request merged since the previous
-   release. That list is your change record.
-4. **Release** starts. It checks that the commit is on `main` and that dev
-   applied it, plans the commit against prod, shows the plan in the run
-   summary, and waits.
+   On GitHub, the same control is **Actions**, **Release**, **Run workflow**.
+4. **Release** checks that the commit is on `main` and that dev applied it,
+   plans the commit against prod, shows the plan in the run summary, and
+   waits.
 5. A required reviewer opens the run, reads the prod plan, and clicks **Review
    deployments**, then **Approve and deploy**.
 6. **Release** applies to prod and comments the result on each pull request the
    release contains.
+7. **Release** publishes a release named after the date and time in UTC, such
+   as `prod-2026-11-13-1344`. Its notes list every pull request merged since
+   the previous release. That list is your change record.
 
-GitHub records who published the release, who approved it and when, next to
-the plan and the apply log. The latest release tag tells you what prod runs.
+GitHub records who started the release, who approved it and when, next to the
+plan and the apply log. The workflow publishes a release only after prod
+applies, so the latest release names what prod runs.
 
 **Key points:**
 
@@ -921,7 +923,7 @@ the plan and the apply log. The latest release tag tells you what prod runs.
   merged changes and hold back later ones, name the last commit you want:
 
   ```bash
-  gh release create prod-2026-11-13 --generate-notes --target <commit-sha>
+  gh workflow run release.yml -f commit=<commit-id>
   ```
 
   `git log --oneline` lists the commits on `main` with the ID of each.
@@ -934,21 +936,26 @@ the plan and the apply log. The latest release tag tells you what prod runs.
 - The prod job plans again after the approval and applies that plan. If the
   tenant changed between the preview and the approval, the applied plan differs
   from the preview. The run summary shows the plan it applied.
-- Drift detection compares prod with the last release that applied, so merged
-  changes that await a release do not count as drift.
-- Restrict who can create tags named `prod-*` with a tag ruleset, under
-  **Settings**, **Rules**, **Rulesets**.
+- Drift detection compares prod with the latest release, so merged changes
+  that await a release do not count as drift.
+- A failed check or a rejected approval publishes nothing and changes nothing.
 
 ### 12.5 Revert in prod
 
-Revert through a pull request, as in section 8, let dev apply it, then publish
-a release. The revert of a bad change is a production change too, so it takes
+Revert through a pull request, as in section 8, let dev apply it, then run a
+release. The revert of a bad change is a production change too, so it takes
 the same route and the same approval.
 
-If prod is broken and cannot wait for that, publish a release that names the
-last good commit with `--target`. Prod returns to that commit while `main`
-stays ahead. Then revert the bad change on `main`, or the next release
-delivers it again.
+If prod is broken and cannot wait for that, release the last good commit:
+
+```bash
+gh workflow run release.yml -f commit=<commit-id>
+```
+
+Prod returns to that commit while `main` stays ahead. Then revert the bad
+change on `main`, or the next release delivers it again. GitHub refuses to
+publish a release for a commit that predates a change to the pipeline files,
+and the workflow stops before it touches prod in that case. Use the revert.
 
 If the bad change has merged and no release contains it, prod never received
 it. Revert it and carry on.
@@ -964,7 +971,7 @@ holds years of configuration and the sandbox is empty.
 1. Run [jamformer](https://github.com/Jamf-Concepts/jamformer) against prod. It
    writes resource files in this project's layout, with import blocks beside
    them.
-2. On your machine, with prod credentials and `PG_SCHEMA_NAME=prod`, plan with
+2. On your machine, with prod credentials and the prod state selected, plan with
    `-var-file=environments/prod.tfvars -parallelism=1`. Trim the generated configuration
    until the plan shows imports and no other action.
 3. Apply from your machine. This is the one apply you run outside the
@@ -1044,17 +1051,27 @@ run it.
 
 ### 13.1 Another state backend
 
-Neon keeps the session short. Your organisation may prefer S3, Azure Storage,
-Google Cloud Storage or HCP Terraform. To switch:
+The session stores state in PostgreSQL on Neon because it is free and quick to
+set up. Your organisation may prefer S3, Azure Storage, Google Cloud Storage
+or HCP Terraform. The backend touches three places, and nothing else in the
+project depends on it:
+
+| Place | What is specific to the backend |
+| --- | --- |
+| `backend.tf` | The backend block |
+| `.github/workflows/terraform.yml` | The lines under the comment **State backend**: two environment variables and one check step |
+| GitHub environments | The secret that holds the backend credentials |
+
+To switch:
 
 1. Replace the block in `backend.tf` with the block for your backend. Give each
    environment its own state through a
    [partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration),
    for example a state key per environment.
-2. In `.github/workflows/terraform.yml`, replace the `PG_CONN_STR` and
-   `PG_SCHEMA_NAME` lines with your backend's credentials, and delete the
-   **Check the state connection string** step.
-3. Run `terraform init -migrate-state` once per environment to copy the state
+2. In `.github/workflows/terraform.yml`, replace the lines under **State
+   backend** with your backend's credentials and settings.
+3. Store the new credentials in each GitHub environment.
+4. Run `terraform init -migrate-state` once per environment to copy the state
    across.
 
 ### 13.2 State locks
@@ -1062,28 +1079,39 @@ Google Cloud Storage or HCP Terraform. To switch:
 Terraform locks the state for the length of a plan or an apply. A second run
 waits up to five minutes for the lock, then fails with
 `Error acquiring the state lock`.
+[Clear a state lock](runbooks/clear-a-state-lock.md) has the procedure.
 
-The PostgreSQL backend releases its lock the moment the connection closes, so a
-cancelled pipeline run leaves nothing behind. Other backends can keep a stale
-lock after a run dies. Clear one from your machine with the lock ID from the
-error message:
+### 13.3 Notes on the session backend
 
-```bash
-terraform force-unlock <lock-id>
-```
+These apply to PostgreSQL on Neon and to no other backend.
 
-Check first that no run is in progress. Unlocking under a live apply corrupts
-state. [Clear a state lock](runbooks/clear-a-state-lock.md) has the full
-procedure, including the PostgreSQL case.
+- **Connection string.** Copy it with **Connection pooling** off and change
+  `sslmode=require` to `sslmode=verify-full`, as in section 5.4. A pooled
+  string connects and plans, and its lock protects nothing. The pipeline
+  refuses a pooled string.
+- **Locks.** The lock lives as long as the database connection that took it,
+  so it ends when the run ends. `terraform force-unlock` does not work with
+  this backend.
+- **A lock that outlives its run.** End the stuck connection from the Neon
+  console, in **SQL Editor**. This ends every session that holds a Terraform
+  lock in that database, so check that no run is in progress for any
+  environment that stores state there.
 
-### 13.3 Another CI platform
+  ```sql
+  SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory';
+  ```
+
+- **New password.** In the Neon console, click **Connect**, then **Reset
+  password**, and copy the new connection string.
+
+### 13.4 Another CI platform
 
 Each platform needs the same four things:
 
 | Need | GitHub Actions | Elsewhere |
 | --- | --- | --- |
 | Run on pull requests and on merges to `main` | `on: pull_request`, `on: push` | Merge request and branch pipelines |
-| Run when someone publishes a release | `on: release` | Tag pipelines |
+| Run on demand with an input | `on: workflow_dispatch` | Manual pipelines with variables |
 | Secrets per environment | Environments | Protected or scoped variables, variable groups |
 | An approval before prod | Required reviewers | Protected environments, manual jobs, approval checks |
 | One apply at a time | `concurrency` | Resource groups, exclusive locks |

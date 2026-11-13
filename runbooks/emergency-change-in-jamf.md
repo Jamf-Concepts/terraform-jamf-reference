@@ -10,7 +10,7 @@ Keep this rare. Each use bypasses review.
 ## Steps
 
 1. Tell the team before you touch Jamf. **The next apply overwrites your
-   change**, so nobody merges or publishes a release until step 4 is done.
+   change**, so nobody merges or runs a release until step 4 is done.
 
 2. Make the change in the Jamf UI. Note what you changed and why.
 
@@ -22,8 +22,8 @@ Keep this rare. Each use bypasses review.
 
 4. Bring the code in line the same day. Copy the change into the configuration
    and follow [Make a change](make-a-change.md). The plan on that pull request
-   must show no changes for the object you edited. If you changed prod,
-   publish a release afterwards. Its preview must show no changes for the
+   must show no changes for the object you edited. If you changed prod, run a
+   release afterwards. Its preview must show no changes for the
    object either.
 
 5. If you created a new object by hand, follow
