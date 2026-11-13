@@ -146,9 +146,16 @@ Copy the client ID, the client secret and the environment ID.
 
 ## 5. Setup
 
+Setup builds the path a change travels. You create a repository, tell
+Terraform which tenant dev is, give it credentials and a place to keep state,
+then hand the same credentials to the pipeline. The first push proves the path
+by building the baseline in your sandbox.
+
 ### 5.1 Create your repository
 
-Download this branch and start a new history from it:
+Your project needs its own repository with its own history. Download this
+branch, then swap the reference repository's history for a fresh one whose
+first branch is `main`:
 
 ```bash
 git clone --branch ref-jamfplatform-gitops --single-branch https://github.com/Jamf-Concepts/terraform-jamf-reference.git jamf-iac
@@ -166,7 +173,8 @@ rm -rf .git
 git init -b main
 ```
 
-Create a private repository on GitHub from the folder:
+Create a private repository on GitHub from the folder. `--remote origin` links
+your local folder to it, so later pushes know where to go:
 
 ```bash
 gh repo create jamf-iac --private --source . --remote origin
@@ -195,9 +203,10 @@ and reviewers see changes to it.
 
 ### 5.3 Set your credentials
 
-The provider reads the client ID and secret from environment variables. Run
-each command on its own, paste the value, and press Enter. The terminal shows
-nothing while you paste.
+The provider reads the client ID and secret from environment variables. A
+variable lasts as long as the terminal, so no secret reaches a file that git
+could commit. Run each command on its own, paste the value, and press Enter.
+The terminal shows nothing while you paste.
 
 ```bash
 read -s JAMFPLATFORM_CLIENT_ID
@@ -249,7 +258,9 @@ export PG_SCHEMA_NAME=dev
 connection string from `PG_CONN_STR` and the schema from `PG_SCHEMA_NAME`. Each
 environment uses its own schema in the database, so each has its own state.
 
-Initialise:
+Initialise. Terraform downloads the provider version the lock file names and
+connects to the backend. On first contact it creates the `dev` schema and an
+empty state inside it:
 
 ```bash
 terraform init
@@ -267,6 +278,10 @@ Terraform has been successfully initialized!
 terraform plan -var-file=environments/dev.tfvars -parallelism=1
 ```
 
+A plan from your machine proves three things before the pipeline gets
+involved: your credentials work, the state is reachable, and the configuration
+is valid for your tenant.
+
 `-var-file` selects the environment. `-parallelism=1` makes Terraform send one
 request at a time. The Jamf API returns errors under concurrent requests, so
 use the flag on each plan, apply and destroy. The pipelines set it too.
@@ -278,8 +293,10 @@ applies.
 
 ### 5.6 Give the pipeline its secrets
 
-A GitHub environment holds the secrets for one tenant. Create `dev` and store
-the three secrets in it:
+The pipeline runs on GitHub's machines, which hold none of the variables in
+your terminal. A GitHub environment holds the secrets for one tenant, and a
+job reads them only when it names that environment. Create `dev` and store the
+three secrets in it:
 
 ```bash
 gh api --method PUT "repos/{owner}/{repo}/environments/dev" --silent
@@ -303,10 +320,14 @@ gh secret set PG_CONN_STR --env dev --body "$PG_CONN_STR"
 > the tenant. Production uses two integrations: one that can read, for plans,
 > and one that can write, held behind an approval. Section 12.2 sets that up.
 > To give dev the same split, create a `dev-plan` environment with a read-only
-> integration and pass `github_environment: dev-plan` to the plan jobs, the
-> way the prod jobs pass `prod-plan`.
+> integration, then add `github_environment: dev-plan` to the dev job in
+> `pull-request.yml` and in `drift.yml`, the way the prod jobs pass
+> `prod-plan`.
 
 ### 5.7 Push and watch the first apply
+
+Commit the project, including your edit to `environments/dev.tfvars`, and push
+it. A push to `main` is the one event that makes the pipeline apply.
 
 ```bash
 git add -A
@@ -342,7 +363,8 @@ Settings** blueprint.
 On GitHub, open **Settings**, **Rules**, **Rulesets** and add a branch ruleset
 for `main` that requires a pull request and requires the **Format, validate,
 lint** and **Dev / Plan dev** status checks to pass. From then on nobody can
-push to `main` or merge a change that fails its plan.
+push to `main` or merge a change that fails its plan. Since a merge to `main`
+is what changes Jamf, this rule is your change control.
 
 GitHub offers rulesets on private repositories in paid plans. On a free plan,
 skip this step for the session and follow the pull request flow by convention.
