@@ -247,8 +247,7 @@ A plan from your machine proves three things before the pipeline gets
 involved: your credentials work, the state is reachable, and the configuration
 is valid for your tenant.
 
-`-var-file` selects the environment. `-parallelism=1` sends one request at a
-time, which the Jamf API needs. Use it on each plan and destroy.
+`-var-file` selects the environment.
 
 The plan should end with `Plan: 7 to add, 0 to change, 0 to destroy`.
 
