@@ -297,6 +297,15 @@ gh secret set JAMFPLATFORM_CLIENT_SECRET --env dev --body "$JAMFPLATFORM_CLIENT_
 gh secret set PG_CONN_STR --env dev --body "$PG_CONN_STR"
 ```
 
+> **Dev shares one integration between plan and apply to keep the session
+> short. Do not copy that to production.** A plan on a pull request runs code
+> nobody has reviewed yet, and here it runs with credentials that can change
+> the tenant. Production uses two integrations: one that can read, for plans,
+> and one that can write, held behind an approval. Section 12.2 sets that up.
+> To give dev the same split, create a `dev-plan` environment with a read-only
+> integration and pass `github_environment: dev-plan` to the plan jobs, the
+> way the prod jobs pass `prod-plan`.
+
 ### 5.7 Push and watch the first apply
 
 ```bash
