@@ -5,24 +5,48 @@
 	<key>PayloadContent</key>
 	<array>
 		<dict>
-			<key>LoginwindowText</key>
-			<string>This computer belongs to Pretend Co. Authorised use only.</string>
+			<key>PayloadContent</key>
+			<dict>
+				<key>com.apple.loginwindow</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>LoginwindowText</key>
+								<string>This computer belongs to Pretend Co. Authorised use only.</string>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+			</dict>
 			<key>PayloadDisplayName</key>
-			<string>Login Window</string>
+			<string>Custom Settings</string>
 			<key>PayloadIdentifier</key>
-			<string>com.pretendco.loginwindow.8C1D7C1E-4E0B-4B63-9B0A-5C0C5B1D2A11</string>
+			<string>8C1D7C1E-4E0B-4B63-9B0A-5C0C5B1D2A11</string>
+			<key>PayloadOrganization</key>
+			<string>Pretend Co</string>
 			<key>PayloadType</key>
-			<string>com.apple.loginwindow</string>
+			<string>com.apple.ManagedClient.preferences</string>
 			<key>PayloadUUID</key>
 			<string>8C1D7C1E-4E0B-4B63-9B0A-5C0C5B1D2A11</string>
 			<key>PayloadVersion</key>
 			<integer>1</integer>
 		</dict>
 	</array>
+	<key>PayloadDescription</key>
+	<string></string>
 	<key>PayloadDisplayName</key>
 	<string>Login Window Banner</string>
+	<key>PayloadEnabled</key>
+	<true/>
 	<key>PayloadIdentifier</key>
-	<string>com.pretendco.login-window-banner</string>
+	<string>3F2A6B90-7D41-4C8E-A1B5-9E6D2F4C7A03</string>
+	<key>PayloadOrganization</key>
+	<string>Pretend Co</string>
+	<key>PayloadRemovalDisallowed</key>
+	<true/>
 	<key>PayloadScope</key>
 	<string>System</string>
 	<key>PayloadType</key>
