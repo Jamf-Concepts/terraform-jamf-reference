@@ -389,6 +389,7 @@ skip this step for the session and follow the pull request flow by convention.
 ├── macos_configuration_profiles.tf
 ├── blueprints.tf
 ├── support_files/                Script bodies and profile payloads
+├── runbooks/                     Step-by-step guides for routine tasks
 ├── .terraform.lock.hcl           Exact provider version and checksums
 ├── .tflint.hcl                   Linter rules
 └── .github/
@@ -489,7 +490,10 @@ git commit -am "Add Network category"
 git push -u origin add-network-category
 ```
 
-Open a pull request and watch its checks:
+Open a pull request and watch its checks. `--fill` takes the title from your
+commit message. Write that message as the change it makes in Jamf, because it
+becomes the entry in the history of `main`. If your organisation has a commit
+message convention, use it.
 
 ```bash
 gh pr create --fill
@@ -521,6 +525,11 @@ git switch main
 ```bash
 git pull
 ```
+
+`--squash` combines every commit on the branch into one commit on `main`,
+titled with the pull request title. One pull request then equals one commit,
+one deploy and one thing to revert. The commits you made along the way stay
+visible in the pull request.
 
 The merge starts **Deploy**. Once it finishes, the pull request gains a second
 comment: ✅ Applied to **dev**. The pull request now records the change, its
@@ -568,30 +577,37 @@ git switch main
 git pull
 ```
 
-The security team objects. Find the commit and revert it on a branch:
+The security team objects. Revert the pull request that made the change. List
+the latest merged pull requests to find its number:
 
 ```bash
-git log --oneline -3
+gh pr list --state merged --limit 3
 ```
 
 ```bash
-git switch -c revert-banner
+gh pr revert <number>
+```
+
+GitHub creates a branch holding one commit that undoes the pull request, and
+opens a new pull request for it. The **Revert** button at the bottom of a
+merged pull request on GitHub does the same.
+
+The command prints the address of the new pull request. Open it and read the
+plan comment, which shows the banner text returning to its previous value:
+
+```bash
+gh pr view <revert-number> --web
+```
+
+Merge it, and **Deploy** restores the profile:
+
+```bash
+gh pr merge <revert-number> --squash --delete-branch
 ```
 
 ```bash
-git revert --no-edit <commit-sha>
+git pull
 ```
-
-```bash
-git push -u origin revert-banner
-```
-
-```bash
-gh pr create --fill
-```
-
-The plan comment shows the banner text returning to its previous value. Merge
-the pull request and **Deploy** restores the profile.
 
 **Key points:**
 
@@ -600,8 +616,11 @@ the pull request and **Deploy** restores the profile.
 - The revert passes through the same checks and plan as any change. Read its
   plan: Terraform restores configuration, and anything the original change
   deleted returns as a new object with a new ID.
-- GitHub's **Revert** button on a merged pull request creates the same branch
-  and pull request for you.
+- Squash merging makes this simple. Each pull request is one commit on `main`,
+  so reverting the pull request undoes the whole change.
+- A provider upgrade is the exception. Once an apply writes state with a newer
+  provider, an older provider refuses to read it. See
+  [Upgrade the provider](runbooks/upgrade-the-provider.md).
 
 ---
 
@@ -1017,7 +1036,8 @@ terraform force-unlock <lock-id>
 ```
 
 Check first that no run is in progress. Unlocking under a live apply corrupts
-state.
+state. [Clear a state lock](runbooks/clear-a-state-lock.md) has the full
+procedure, including the PostgreSQL case.
 
 ### 13.3 Another CI platform
 
@@ -1062,6 +1082,10 @@ Then remove what the session created outside Jamf:
 
 ## 15. What's next
 
+- **[Runbooks](runbooks/README.md)**, short procedures for the tasks you
+  repeat once this project runs your tenants: making and reverting changes,
+  resolving drift, upgrading the provider, rotating credentials and adding an
+  environment.
 - **[Importing existing objects](https://registry.terraform.io/providers/jamf/jamfplatform/latest/docs/guides/importing)**,
   the provider guide on what the first plan after an import shows and what
   applying it does.

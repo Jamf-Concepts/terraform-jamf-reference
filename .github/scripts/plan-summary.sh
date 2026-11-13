@@ -74,7 +74,8 @@ if [[ -z "$changes" ]]; then
 fi
 
 echo "**$(count create) to add, $(count update) to change, $(count replace) to replace," \
-  "$(count destroy) to destroy, $(count import) to import, $(count move) to move.**"
+  "$(count destroy) to destroy, $(count import) to import, $(count move) to move," \
+  "$(count forget) to forget.**"
 echo
 echo "| | Action | Resource |"
 echo "|---|---|---|"
