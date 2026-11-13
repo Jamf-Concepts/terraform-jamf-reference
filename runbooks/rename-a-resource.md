@@ -43,5 +43,5 @@ no changes.
 
 - **The plan shows 🔴 destroy and 🟢 create.** The `moved` block does not match
   the old or new address. Fix it before you merge.
-- **You removed the `moved` block before prod applied.** Prod's plan shows a
-  destroy and a create. Put the block back.
+- **You removed the `moved` block before a release carried it to prod.** Prod's
+  plan shows a destroy and a create. Put the block back.

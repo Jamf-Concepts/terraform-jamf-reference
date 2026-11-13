@@ -59,8 +59,8 @@ The steps use `stage` as the name.
        secrets: inherit
    ```
 
-   Then change `needs: dev` to `needs: stage` on the `prod-plan` job, so prod
-   follows stage.
+   A release checks that dev applied a commit before prod receives it. To make
+   stage part of that test, release only after the **Stage** job succeeds.
 
 6. Add a drift job to `.github/workflows/drift.yml`:
 

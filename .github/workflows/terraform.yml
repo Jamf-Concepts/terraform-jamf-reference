@@ -2,7 +2,7 @@
 # one, so the steps exist once.
 #
 #   plan only       pull requests, and the preview before a prod approval
-#   plan and apply  merges to main
+#   plan and apply  merges to main (dev) and published releases (prod)
 #   plan as drift   the daily drift check
 
 name: Terraform
@@ -16,6 +16,14 @@ on:
         required: true
       github_environment:
         description: GitHub environment that supplies the secrets. Defaults to the environment name.
+        type: string
+        default: ""
+      ref:
+        description: Branch, tag or commit to run. Defaults to the commit that started the workflow.
+        type: string
+        default: ""
+      plan_note:
+        description: A sentence shown under the plan heading.
         type: string
         default: ""
       apply:
@@ -50,6 +58,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -92,7 +102,7 @@ jobs:
 
       - name: Summarise the plan
         run: |
-          .github/scripts/plan-summary.sh tfplan "Terraform plan: ${{ inputs.environment }}" > plan.md
+          .github/scripts/plan-summary.sh tfplan "Terraform plan: ${{ inputs.environment }}" "${{ inputs.plan_note }}" > plan.md
           cat plan.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment the plan on the pull request
@@ -124,4 +134,4 @@ jobs:
 
       - name: Report drift
         if: inputs.report_drift
-        run: .github/scripts/drift-issue.sh "${{ inputs.environment }}" "${{ steps.plan.outputs.changes }}" plan.md
+        run: .github/scripts/drift-issue.sh "${{ inputs.environment }}" "${{ steps.plan.outputs.changes }}" plan.md "${{ inputs.ref || 'main' }}"

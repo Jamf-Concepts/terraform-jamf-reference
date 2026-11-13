@@ -11,7 +11,7 @@ sections 5.3 and 5.4 of the [main README](../README.md).
 | Task | Runbook |
 | --- | --- |
 | Change, add or delete an object | [Make a change](make-a-change.md) |
-| Approve a change for production | [Promote a change to prod](promote-to-prod.md) |
+| Release tested changes to production | [Promote a change to prod](promote-to-prod.md) |
 | Undo a change that applied | [Revert a change](revert-a-change.md) |
 | Deploy failed after a merge | [Recover from a failed apply](recover-from-a-failed-apply.md) |
 | A drift issue opened | [Resolve drift](resolve-drift.md) |

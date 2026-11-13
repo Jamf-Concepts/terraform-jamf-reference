@@ -7,7 +7,8 @@
 A Terraform project you can use as a template for production. You copy it into
 your own GitHub repository, store state in a remote backend, and change Jamf
 through pull requests. Pipelines check each change, show you the plan, apply it
-to a dev tenant, and promote the same commit to prod after an approval.
+to a dev tenant, and promote a tested commit to prod when you publish a
+release and a reviewer approves it.
 
 The session uses one sandbox tenant as dev. Section 12 holds every step that
 needs a second tenant, so you can skip it during the session and return to it
@@ -56,7 +57,7 @@ operate and explain to an auditor.
 | State | Remote, one state per environment | An apply to dev cannot touch prod. The lock stops two runs writing state at once. |
 | Secrets | Environment variables, stored as CI secrets | No secret enters the repository or a tfvars file. |
 | Branching | One long-lived branch, `main` | Short-lived branches merge through pull requests. Environment branches drift apart and need merges to promote. |
-| Promotion | Merge applies to dev. An approval promotes the same commit to prod. | The approval is the audit record. Every CI platform has an equivalent gate. |
+| Promotion | A merge applies to dev. Publishing a release promotes a commit on `main` to prod, after an approval. | You choose when prod changes and how many merged changes go together. The release is the change record and the approval is the audit record. Every CI platform can run a pipeline on a tag and gate it. |
 | Rollback | Revert the commit through a pull request | The revert gets the same checks, plan and approval as any change. |
 | Who applies | The pipeline | People plan on their own machines and never apply. State and the audit trail stay in one place. |
 
@@ -438,9 +439,10 @@ your team's machines.
 | Workflow | Runs on | Does | Changes Jamf |
 | --- | --- | --- | --- |
 | **Pull request** | Each pull request to `main` | Checks formatting, validates, lints, then posts a plan per environment as a comment | No |
-| **Deploy** | Each merge to `main`, or on demand | Plans and applies to dev, then to prod after approval. Comments the result on the pull request. | Yes |
-| **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if the tenant differs from `main` | No |
-| **Terraform** | Called by the three above | Holds the init, plan and apply steps once | |
+| **Deploy** | Each merge to `main`, or on demand | Plans and applies to dev. Comments the result on the pull request. | Yes |
+| **Release** | Each published release | Requires prod. Checks the release, shows the prod plan, waits for approval, applies to prod. Comments the result on each pull request in the release. | Yes |
+| **Drift detection** | Weekday mornings, or on demand | Plans each environment and opens an issue if dev differs from `main` or prod differs from its last release | No |
+| **Terraform** | Called by the four above | Holds the init, plan and apply steps once | |
 
 The checks in **Pull request** each catch a different class of mistake:
 
@@ -851,7 +853,7 @@ production tenant in `environments/prod.tfvars`.
 
 | GitHub environment | Used by | Credentials | Protection |
 | --- | --- | --- | --- |
-| `prod-plan` | Plans on pull requests, the preview before approval, drift detection | An integration with the Read action of each permission in section 4.4 and no other action | None |
+| `prod-plan` | Plans on pull requests, the release preview before approval, drift detection | An integration with the Read action of each permission in section 4.4 and no other action | None |
 | `prod` | The apply | An integration with the permissions from section 4.4 | Required reviewers |
 
 Two environments keep the write credentials behind the approval. A plan on a
@@ -885,36 +887,71 @@ The workflows skip every prod job until this variable is `true`.
 
 ### 12.4 How a change reaches prod
 
-1. You open a pull request. It gains two plan comments, one for dev and one for
-   prod. The reviewer reads both.
-2. You merge. **Deploy** applies the commit to dev.
-3. **Deploy** plans the same commit against prod and shows the plan in the run
-   summary. The run then waits.
-4. A required reviewer opens the run, reads the prod plan, and clicks **Review
-   deployments**, then **Approve and deploy**.
-5. **Deploy** applies to prod and comments the result on the pull request.
+A merge changes dev and nothing else. Prod changes when you publish a release:
+a named tag on a commit in `main`. You decide when that happens and how many
+merged changes it carries.
 
-GitHub records who approved and when, next to the plan and the apply log.
+1. You open a pull request. It gains two plan comments, one for dev and one for
+   prod. The prod plan compares the pull request with prod, so it also lists
+   changes that have merged and await a release.
+2. You merge. **Deploy** applies the commit to dev. You test the change there.
+3. When dev holds what you want in prod, you publish a release:
+
+   ```bash
+   gh release create prod-2026-11-13 --generate-notes
+   ```
+
+   `--generate-notes` lists every pull request merged since the previous
+   release. That list is your change record.
+4. **Release** starts. It checks that the commit is on `main` and that dev
+   applied it, plans the commit against prod, shows the plan in the run
+   summary, and waits.
+5. A required reviewer opens the run, reads the prod plan, and clicks **Review
+   deployments**, then **Approve and deploy**.
+6. **Release** applies to prod and comments the result on each pull request the
+   release contains.
+
+GitHub records who published the release, who approved it and when, next to
+the plan and the apply log. The latest release tag tells you what prod runs.
 
 **Key points:**
 
-- Dev is your test. Check the change on a dev device before you approve prod.
+- Dev is your test. Check each change on a dev device before you release.
+- A release carries every commit up to the one it names. To release some
+  merged changes and hold back later ones, name the last commit you want:
+
+  ```bash
+  gh release create prod-2026-11-13 --generate-notes --target <commit-sha>
+  ```
+
+  `git log --oneline` lists the commits on `main` with the ID of each.
+- You cannot release a later change without the earlier ones. If an earlier
+  change is not ready, revert it as in section 8 and merge it again later, or
+  ship it to prod switched off or scoped to a pilot group through a value in
+  `environments/prod.tfvars`.
+- Release often. A long gap between dev and prod makes each release larger and
+  harder to review.
 - The prod job plans again after the approval and applies that plan. If the
   tenant changed between the preview and the approval, the applied plan differs
   from the preview. The run summary shows the plan it applied.
-- If a second commit merges while the first waits for approval, approve the
-  newest run. It carries both changes. Reject the older one.
-- Drift detection reports a commit that waits for approval as drift in prod,
-  because prod differs from `main` until you approve.
+- Drift detection compares prod with the last release that applied, so merged
+  changes that await a release do not count as drift.
+- Restrict who can create tags named `prod-*` with a tag ruleset, under
+  **Settings**, **Rules**, **Rulesets**.
 
 ### 12.5 Revert in prod
 
-Revert through a pull request, as in section 8. The revert applies to dev and
-then waits for the same approval. No faster path to prod exists, and that is
-deliberate: the revert of a bad change is a production change too.
+Revert through a pull request, as in section 8, let dev apply it, then publish
+a release. The revert of a bad change is a production change too, so it takes
+the same route and the same approval.
 
-If the bad commit still waits for approval, reject it. Prod never received it,
-so only dev needs the revert.
+If prod is broken and cannot wait for that, publish a release that names the
+last good commit with `--target`. Prod returns to that commit while `main`
+stays ahead. Then revert the bad change on `main`, or the next release
+delivers it again.
+
+If the bad change has merged and no release contains it, prod never received
+it. Revert it and carry on.
 
 ### 12.6 Import with two tenants
 
@@ -1046,6 +1083,7 @@ Each platform needs the same four things:
 | Need | GitHub Actions | Elsewhere |
 | --- | --- | --- |
 | Run on pull requests and on merges to `main` | `on: pull_request`, `on: push` | Merge request and branch pipelines |
+| Run when someone publishes a release | `on: release` | Tag pipelines |
 | Secrets per environment | Environments | Protected or scoped variables, variable groups |
 | An approval before prod | Required reviewers | Protected environments, manual jobs, approval checks |
 | One apply at a time | `concurrency` | Resource groups, exclusive locks |

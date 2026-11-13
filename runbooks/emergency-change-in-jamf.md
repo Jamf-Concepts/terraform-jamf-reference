@@ -9,8 +9,8 @@ Keep this rare. Each use bypasses review.
 
 ## Steps
 
-1. Tell the team before you touch Jamf. **The next Deploy run overwrites your
-   change**, so nobody merges until step 4 is done.
+1. Tell the team before you touch Jamf. **The next apply overwrites your
+   change**, so nobody merges or publishes a release until step 4 is done.
 
 2. Make the change in the Jamf UI. Note what you changed and why.
 
@@ -22,7 +22,9 @@ Keep this rare. Each use bypasses review.
 
 4. Bring the code in line the same day. Copy the change into the configuration
    and follow [Make a change](make-a-change.md). The plan on that pull request
-   must show no changes for the object you edited.
+   must show no changes for the object you edited. If you changed prod,
+   publish a release afterwards. Its preview must show no changes for the
+   object either.
 
 5. If you created a new object by hand, follow
    [Import an existing object](import-an-existing-object.md) instead.
@@ -38,9 +40,6 @@ run closes the issue.
   complete step 4 before anything else merges.
 - **The plan still shows changes after you copied the edit.** Your code does
   not match Jamf yet. Compare the plan's values with yours.
-- **The emergency change was wrong.** Apply `main` to restore the managed
-  settings:
-
-   ```bash
-   gh workflow run deploy.yml
-   ```
+- **The emergency change was wrong.** Apply the configuration again to restore
+  the managed settings. [Resolve drift](resolve-drift.md) has the commands
+  for dev and for prod.

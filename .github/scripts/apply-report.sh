@@ -30,8 +30,24 @@ fi
 
 cat apply.md >> "$GITHUB_STEP_SUMMARY"
 
-# A commit pushed straight to main has no pull request to comment on.
-pull_request="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // empty')"
-if [[ -n "$pull_request" ]]; then
-  "$(dirname "$0")/pr-comment.sh" "$pull_request" "apply-$environment" apply.md
+# Comment on each pull request this apply delivered. A merge to main delivers
+# the pull request behind its commit. A release delivers every pull request
+# merged since the previous release.
+if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+  echo "Release \`$GITHUB_REF_NAME\`." >> apply.md
+  previous="$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name' \
+    | grep -A1 -x -F "$GITHUB_REF_NAME" | tail -n +2 || true)"
+  if [[ -n "$previous" ]]; then
+    commits="$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$GITHUB_REF_NAME" --jq '.commits[].sha')"
+  else
+    commits="$GITHUB_SHA"
+  fi
+else
+  commits="$GITHUB_SHA"
 fi
+
+for commit in $commits; do
+  gh api "repos/$GITHUB_REPOSITORY/commits/$commit/pulls" --jq '.[].number'
+done | sort -un | while read -r pull_request; do
+  "$(dirname "$0")/pr-comment.sh" "$pull_request" "apply-$environment" apply.md
+done

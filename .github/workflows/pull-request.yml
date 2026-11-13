@@ -58,4 +58,5 @@ jobs:
     with:
       environment: prod
       github_environment: prod-plan
+      plan_note: This plan compares the pull request with prod, so it includes changes that have merged and await a release.
     secrets: inherit

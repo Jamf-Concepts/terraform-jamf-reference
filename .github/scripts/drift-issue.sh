@@ -3,13 +3,17 @@
 # Keeps one open issue per environment while the tenant differs from main, and
 # closes it once a later check finds no difference.
 #
-# Usage: drift-issue.sh <environment> <plan-had-changes> <markdown-file>
+# Usage: drift-issue.sh <environment> <plan-had-changes> <markdown-file> <ref>
+#
+# <ref> names what the tenant should match: main for dev, the latest release
+# tag for prod.
 
 set -euo pipefail
 
 environment="$1"
 changes="$2"
 markdown_file="$3"
+ref="$4"
 
 title="Terraform drift: $environment"
 issue="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')"
@@ -22,9 +26,9 @@ if [[ "$changes" != "true" ]]; then
 fi
 
 run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-body="The **$environment** tenant no longer matches \`main\`. Either someone changed Jamf outside Terraform, or a merged change has not been applied.
+body="The **$environment** tenant no longer matches \`$ref\`. Either someone changed Jamf outside Terraform, or an apply did not finish.
 
-Applying \`main\` again makes the changes below. To keep a change someone made in Jamf, copy it into the configuration first.
+Applying \`$ref\` again makes the changes below. To keep a change someone made in Jamf, copy it into the configuration first.
 
 $(cat "$markdown_file")
 

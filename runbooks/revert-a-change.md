@@ -34,8 +34,9 @@ Do not use this for a provider upgrade that has applied. See
    gh pr merge <revert-number> --squash --delete-branch
    ```
 
-5. If prod is on, the revert waits for the same approval as any change. See
-   [Promote a change to prod](promote-to-prod.md).
+5. If prod received the change, publish a release once dev has applied the
+   revert. See [Promote a change to prod](promote-to-prod.md). If no release
+   contains the change, prod never received it and you are done.
 
 ## Check it worked
 
@@ -43,6 +44,15 @@ The revert pull request gains a comment: ✅ Applied to **dev**. The object in
 Jamf holds its previous settings.
 
 ## If it goes wrong
+
+- **Prod is broken and cannot wait for a pull request.** Publish a release
+  that names the last good commit. Prod returns to it while `main` stays
+  ahead. Then complete the steps above, or the next release delivers the bad
+  change again.
+
+  ```bash
+  gh release create prod-<yyyy-mm-dd>-rollback --notes "Roll back to <commit-id>" --target <commit-id>
+  ```
 
 - **The plan shows 🟢 create for an object the original change deleted.**
   Terraform restores the configuration and Jamf issues a new ID. Anything that

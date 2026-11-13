@@ -1,5 +1,6 @@
 # Runs every weekday morning. Plans each environment and raises an issue when
-# the tenant no longer matches main. It changes nothing in Jamf.
+# dev no longer matches main, or prod no longer matches the latest release. It
+# changes nothing in Jamf.
 
 name: Drift detection
 
@@ -10,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   issues: write
 
 jobs:
@@ -22,12 +24,36 @@ jobs:
     secrets: inherit
 
   # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  # Prod should match the last release that applied, so the check plans that
+  # release. A release that failed its checks or was rejected does not count.
+  released:
+    name: Find the release in prod
+    if: vars.PROD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+    steps:
+      - name: Find the last successful prod deployment
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for deployment in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=prod&per_page=30" --jq '.[].id'); do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" --jq '.[0].state')"
+            if [[ "$state" == "success" ]]; then
+              echo "tag=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment" --jq .ref)" >> "$GITHUB_OUTPUT"
+              break
+            fi
+          done
+
   prod:
     name: Prod
-    if: vars.PROD_ENABLED == 'true'
+    needs: released
+    if: needs.released.outputs.tag != ''
     uses: ./.github/workflows/terraform.yml
     with:
       environment: prod
       github_environment: prod-plan
+      ref: ${{ needs.released.outputs.tag }}
       report_drift: true
     secrets: inherit

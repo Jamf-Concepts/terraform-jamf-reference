@@ -2,8 +2,8 @@
 
 ## When to use
 
-A **Deploy** run failed, and the pull request carries a comment that starts
-❌ The apply failed.
+A **Deploy** run failed in dev or a **Release** run failed in prod, and the
+pull request carries a comment that starts ❌ The apply failed.
 
 ## Steps
 
@@ -23,23 +23,37 @@ A **Deploy** run failed, and the pull request carries a comment that starts
      value the API accepts.
    - **Withdraw the change.** Follow [Revert a change](revert-a-change.md).
 
-4. If the error was temporary, such as a timeout, run the deploy again with no
-   code change:
+   A fix for prod reaches it through a new release. See
+   [Promote a change to prod](promote-to-prod.md).
+
+4. If the error was temporary, such as a timeout, run it again with no code
+   change. For dev:
 
    ```bash
    gh workflow run deploy.yml
    ```
 
+   For prod, run the failed release again. It waits for approval again.
+
+   ```bash
+   gh run list --workflow release.yml --limit 3
+   ```
+
+   ```bash
+   gh run rerun <run-id>
+   ```
+
 ## Check it worked
 
-The next **Deploy** run succeeds, and a plan for the environment shows no
-changes.
+The next **Deploy** or **Release** run succeeds, and a plan for the
+environment shows no changes.
 
 ## If it goes wrong
 
 - **Drift detection opens an issue.** That is expected. The tenant differs from
-  `main` until an apply succeeds, and the issue closes after the fix.
+  the configuration until an apply succeeds, and the issue closes after the
+  fix.
 - **The same error returns after a retry.** The error is in the configuration.
   Correct or withdraw the change.
-- **The run failed in dev.** Prod never received the commit, because the prod
-  jobs run after a successful dev apply.
+- **The run failed in dev.** Prod is safe. A release refuses a commit that dev
+  did not apply.

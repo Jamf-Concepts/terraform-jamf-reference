@@ -37,7 +37,8 @@ change that file.
 5. Read the plan for each environment. A clean upgrade shows no changes. If it
    shows changes, the release notes should explain each one.
 
-6. Merge, and check dev before you approve prod.
+6. Merge, check dev, then release to prod. See
+   [Promote a change to prod](promote-to-prod.md).
 
 To require a newer Terraform, raise `required_version` in `terraform.tf` in the
 same way. The pipeline installs the latest Terraform release on each run.
