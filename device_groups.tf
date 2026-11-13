@@ -1,18 +1,12 @@
 # Every policy, profile and blueprint in this project targets this one group.
-# The serial numbers come from environments/<name>.tfvars.
+#
+# Terraform manages the group. People manage who is in it, in Jamf. Leave the
+# members attribute out: declaring it hands membership to Terraform, and an
+# empty list removes every member.
 
 resource "jamfplatform_device_group" "pilot_computers" {
   name        = "Pilot Computers"
-  description = "Managed by Terraform"
-  group_type  = "smart"
+  description = "Managed by Terraform. Add and remove members in Jamf."
+  group_type  = "static"
   device_type = "computer"
-
-  criteria = [
-    for index, serial_number in var.pilot_serial_numbers : {
-      and_or   = index == 0 ? null : "or"
-      criteria = "Serial Number"
-      operator = "is"
-      value    = serial_number
-    }
-  ]
 }

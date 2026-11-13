@@ -22,8 +22,8 @@ rules for naming and layout as the project grows.
 
 ### 1.1 Describe the prod tenant
 
-Set the gateway URL, the environment ID and the pilot serial numbers of your
-production tenant in `environments/prod.tfvars`.
+Set the gateway URL and the environment ID of your production tenant in
+`environments/prod.tfvars`.
 
 ### 1.2 Create two GitHub environments
 

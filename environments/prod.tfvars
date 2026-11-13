@@ -4,7 +4,3 @@
 jamfplatform_base_url = "https://us.api.jamfcloud.com"
 
 jamfplatform_environment_id = "00000000-0000-0000-0000-000000000000"
-
-pilot_serial_numbers = [
-  "C02PROD0001",
-]

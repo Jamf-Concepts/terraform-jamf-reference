@@ -35,7 +35,7 @@ By the end of this session you will be able to:
 
 | Piece | Where | Purpose |
 | --- | --- | --- |
-| Configuration | `*.tf` at the repository root | Two categories, a smart group, a script, a policy, a configuration profile and a blueprint |
+| Configuration | `*.tf` at the repository root | Two categories, a static group, a script, a policy, a configuration profile and a blueprint |
 | Environment values | `environments/dev.tfvars`, `environments/prod.tfvars` | The tenant each environment targets, and the values that differ between tenants |
 | Remote state | PostgreSQL on [Neon](https://neon.com) | One state per environment, with locking |
 | Pipelines | `.github/workflows/` | Check, plan, apply and drift detection |
@@ -162,21 +162,16 @@ profiles, and the pipelines post plans as comments.
 
 ### 4.2 Point dev at your sandbox
 
-Open `environments/dev.tfvars` and set three values:
+Open `environments/dev.tfvars` and set two values:
 
 ```hcl
 jamfplatform_base_url = "https://us.api.jamfcloud.com"
 
 jamfplatform_environment_id = "your-environment-uuid"
-
-pilot_serial_numbers = [
-  "C02DEV00001",
-]
 ```
 
-Use the gateway URL for your region, your environment ID, and the serial number
-of a test Mac. None of these is a secret, so the file lives in the repository
-and reviewers see changes to it.
+Use the gateway URL for your region and your environment ID. Neither is a
+secret, so the file lives in the repository and reviewers see changes to it.
 
 ### 4.3 Set your credentials
 
@@ -326,6 +321,11 @@ the Jamf UI for the **Pilot Computers** group, the **Flush DNS Cache** policy
 and script, the **Login Window Banner** profile and the **Software Update
 Settings** blueprint.
 
+**Pilot Computers** is a static group with no members, and everything else
+targets it. Terraform manages the group and leaves its membership to you. Add
+a test Mac to it in the Jamf UI, and no later plan reports that as a change.
+You decide what Terraform owns, and it need not own everything.
+
 ### 4.8 Protect main
 
 A merge to `main` is what changes Jamf, so the rule that guards `main` is your
@@ -387,12 +387,13 @@ home:
 | What differs | Where it lives |
 | --- | --- |
 | The tenant: gateway URL and environment ID | `environments/<name>.tfvars` |
-| Values tied to a tenant, such as the serial numbers in `pilot_serial_numbers` | `environments/<name>.tfvars`, declared in `variables.tf` |
+| Any other value tied to a tenant | `environments/<name>.tfvars`, declared in `variables.tf` |
 | Secrets: API credentials, the state connection string | The GitHub environment of the same name |
 
 To make a new value differ, declare a variable in `variables.tf`, use it in a
-resource, and set it in each tfvars file. `device_groups.tf` shows the pattern
-with `var.pilot_serial_numbers`.
+resource, and set it in each tfvars file. `providers.tf` shows the pattern
+with `var.jamfplatform_base_url`. Add a variable only for a value that must
+differ.
 
 ### 5.2 The lock file
 
