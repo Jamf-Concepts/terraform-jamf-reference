@@ -235,9 +235,9 @@ The `name` attribute is what administrators and users see.
   set it, and a missing value fails the plan.
 - Put values in `environments/<name>.tfvars`. Put secrets in the CI secret
   store and mark the variable `sensitive`. No secret goes in a file.
-- Do not test the environment name inside a resource. To make something
-  behave differently in prod, pass a value that makes it so, such as a list
-  of serial numbers or an `enabled` flag.
+- Do not test the environment name inside a resource. To change how
+  something behaves in prod, pass a value that changes it, such as a list of
+  serial numbers or an `enabled` flag.
 
 **Payloads**
 
