@@ -247,9 +247,8 @@ A plan from your machine proves three things before the pipeline gets
 involved: your credentials work, the state is reachable, and the configuration
 is valid for your tenant.
 
-`-var-file` selects the environment. `-parallelism=1` makes Terraform send one
-request at a time. The Jamf API returns errors under concurrent requests, so
-use the flag on each plan, apply and destroy. The pipelines set it too.
+`-var-file` selects the environment. `-parallelism=1` sends one request at a
+time, which the Jamf API needs. Use it on each plan and destroy.
 
 The plan should end with `Plan: 7 to add, 0 to change, 0 to destroy`.
 
