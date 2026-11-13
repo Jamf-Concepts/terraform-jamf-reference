@@ -1,0 +1,18 @@
+# Terraform working directory and local artefacts
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+generated.tf
+
+# Local overrides. The environments/ folder holds the committed tfvars files.
+/terraform.tfvars
+*.auto.tfvars
+
+# Apple-issued tokens
+*.p7m
+*.vpptoken
+
+.DS_Store
+CLAUDE.md

@@ -1,0 +1,33 @@
+# Runs every weekday morning. Plans each environment and raises an issue when
+# the tenant no longer matches main. It changes nothing in Jamf.
+
+name: Drift detection
+
+on:
+  schedule:
+    - cron: "0 6 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  dev:
+    name: Dev
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: dev
+      report_drift: true
+    secrets: inherit
+
+  # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  prod:
+    name: Prod
+    if: vars.PROD_ENABLED == 'true'
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: prod
+      github_environment: prod-plan
+      report_drift: true
+    secrets: inherit

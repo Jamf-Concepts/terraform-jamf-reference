@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>LoginwindowText</key>
+			<string>This computer belongs to Pretend Co. Authorised use only.</string>
+			<key>PayloadDisplayName</key>
+			<string>Login Window</string>
+			<key>PayloadIdentifier</key>
+			<string>com.pretendco.loginwindow.8C1D7C1E-4E0B-4B63-9B0A-5C0C5B1D2A11</string>
+			<key>PayloadType</key>
+			<string>com.apple.loginwindow</string>
+			<key>PayloadUUID</key>
+			<string>8C1D7C1E-4E0B-4B63-9B0A-5C0C5B1D2A11</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>Login Window Banner</string>
+	<key>PayloadIdentifier</key>
+	<string>com.pretendco.login-window-banner</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>3F2A6B90-7D41-4C8E-A1B5-9E6D2F4C7A03</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

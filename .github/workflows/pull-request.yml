@@ -1,0 +1,61 @@
+# Runs on every pull request to main. Checks the code, then posts a plan for
+# each environment as a comment on the pull request. It changes nothing in Jamf.
+
+name: Pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# A new push to the pull request cancels the run for the previous push.
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Format, validate, lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      - uses: terraform-linters/setup-tflint@v6
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive -diff
+
+      # Validation needs the provider and no state, so skip the backend.
+      - name: Validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Lint
+        run: tflint
+
+  plan-dev:
+    name: Dev
+    needs: checks
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: dev
+    secrets: inherit
+
+  # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  plan-prod:
+    name: Prod
+    if: vars.PROD_ENABLED == 'true'
+    needs: checks
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: prod
+      github_environment: prod-plan
+    secrets: inherit

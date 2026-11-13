@@ -1,0 +1,124 @@
+# Runs Terraform against one environment. The other three workflows call this
+# one, so the steps exist once.
+#
+#   plan only       pull requests, and the preview before a prod approval
+#   plan and apply  merges to main
+#   plan as drift   the daily drift check
+
+name: Terraform
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Selects environments/<name>.tfvars and the state schema.
+        type: string
+        required: true
+      github_environment:
+        description: GitHub environment that supplies the secrets. Defaults to the environment name.
+        type: string
+        default: ""
+      apply:
+        description: Apply the plan after rendering it.
+        type: boolean
+        default: false
+      report_drift:
+        description: Treat a plan with changes as drift and raise an issue.
+        type: boolean
+        default: false
+
+jobs:
+  terraform:
+    name: ${{ inputs.apply && 'Apply' || 'Plan' }} ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.github_environment || inputs.environment }}
+
+    # One apply per environment at a time. A second apply waits for the first.
+    concurrency:
+      group: terraform-${{ inputs.environment }}-${{ inputs.apply && 'apply' || github.run_id }}
+      cancel-in-progress: false
+
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      JAMFPLATFORM_CLIENT_ID: ${{ secrets.JAMFPLATFORM_CLIENT_ID }}
+      JAMFPLATFORM_CLIENT_SECRET: ${{ secrets.JAMFPLATFORM_CLIENT_SECRET }}
+      PG_CONN_STR: ${{ secrets.PG_CONN_STR }}
+      PG_SCHEMA_NAME: ${{ inputs.environment }}
+      GH_TOKEN: ${{ github.token }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      # A pooled Neon connection string connects but never holds the state
+      # lock, so two runs could write state at once. Stop before that happens.
+      - name: Check the state connection string
+        run: |
+          if [[ "$PG_CONN_STR" == *-pooler.* ]]; then
+            echo "::error::PG_CONN_STR points at a connection pooler. Store the direct connection string. See README.md."
+            exit 1
+          fi
+
+      - name: Initialise
+        run: terraform init
+
+      # Exit code 0 means no changes, 2 means changes, 1 means the plan failed.
+      # The last line keeps a copy of any error for the pull request comment.
+      - name: Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan \
+            -var-file="environments/${{ inputs.environment }}.tfvars" \
+            -lock-timeout=5m \
+            -detailed-exitcode \
+            -out=tfplan \
+            2> >(tee plan-errors.txt >&2)
+          exit_code=$?
+          set -e
+
+          if [[ $exit_code -eq 1 ]]; then
+            exit 1
+          fi
+          echo "changes=$([[ $exit_code -eq 2 ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Summarise the plan
+        run: |
+          .github/scripts/plan-summary.sh tfplan "Terraform plan: ${{ inputs.environment }}" > plan.md
+          cat plan.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment the plan on the pull request
+        if: github.event_name == 'pull_request'
+        run: .github/scripts/pr-comment.sh "${{ github.event.pull_request.number }}" "plan-${{ inputs.environment }}" plan.md
+
+      - name: Comment a failed plan on the pull request
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          {
+            echo "### Terraform plan: ${{ inputs.environment }}"
+            echo "❌ The plan failed."
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' plan-errors.txt
+            echo '```'
+          } > plan.md
+          .github/scripts/pr-comment.sh "${{ github.event.pull_request.number }}" "plan-${{ inputs.environment }}" plan.md
+
+      # Terraform applies the saved plan, so it changes what the summary
+      # above lists and nothing else.
+      - name: Apply
+        id: apply
+        if: inputs.apply && steps.plan.outputs.changes == 'true'
+        run: terraform apply -lock-timeout=5m tfplan 2> >(tee apply-errors.txt >&2)
+
+      - name: Report the apply
+        if: always() && inputs.apply && steps.plan.outcome == 'success'
+        run: .github/scripts/apply-report.sh "${{ inputs.environment }}" "${{ steps.plan.outputs.changes }}" "${{ steps.apply.outcome }}"
+
+      - name: Report drift
+        if: inputs.report_drift
+        run: .github/scripts/drift-issue.sh "${{ inputs.environment }}" "${{ steps.plan.outputs.changes }}" plan.md

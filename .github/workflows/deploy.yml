@@ -1,0 +1,44 @@
+# Runs on every merge to main. Applies the merged commit to dev, then promotes
+# the same commit to prod once a reviewer approves.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dev:
+    name: Dev
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: dev
+      apply: true
+    secrets: inherit
+
+  # Requires prod. Skipped until the PROD_ENABLED repository variable is true.
+  # Shows what the commit will change in prod, for the approver to read.
+  prod-plan:
+    name: Prod preview
+    if: vars.PROD_ENABLED == 'true'
+    needs: dev
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: prod
+      github_environment: prod-plan
+    secrets: inherit
+
+  # Waits for a required reviewer on the prod GitHub environment.
+  prod:
+    name: Prod
+    needs: prod-plan
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: prod
+      apply: true
+    secrets: inherit
