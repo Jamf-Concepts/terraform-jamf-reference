@@ -437,10 +437,14 @@ the plan with additions in green, removals in red and changed lines in amber.
 
 ## 6. Change Jamf through a pull request
 
-Add a category. Start a branch:
+The **Flush DNS Cache** script and policy sit in the Maintenance category.
+Give them a category of their own. One pull request creates the category and
+moves both objects into it.
+
+Start a branch:
 
 ```bash
-git switch -c add-network-category
+git switch -c move-dns-tools-to-network
 ```
 
 In `categories.tf`, add a line to the map:
@@ -455,6 +459,16 @@ locals {
 }
 ```
 
+In `scripts.tf` and in `policies.tf`, point `category_id` at the new category:
+
+```hcl
+category_id = jamfplatform_pro_category.main["network"].id
+```
+
+The category has no ID yet, and you do not need one. The reference tells
+Terraform to create the category first and pass its ID to the script and the
+policy.
+
 Format, commit and push:
 
 ```bash
@@ -462,11 +476,11 @@ terraform fmt
 ```
 
 ```bash
-git commit -am "Add Network category"
+git commit -am "Move the DNS tools to a new Network category"
 ```
 
 ```bash
-git push -u origin add-network-category
+git push -u origin move-dns-tools-to-network
 ```
 
 Open a pull request and watch its checks. `--fill` takes the title from your
@@ -486,10 +500,22 @@ gh pr checks --watch
 gh pr view --web
 ```
 
-The pull request carries a comment headed **Terraform plan: dev** with one row:
-🟢 create `jamfplatform_pro_category.main["network"]`. A reviewer reads the
-code change and the plan side by side. Each push to the branch replaces the
-comment with a fresh plan.
+The pull request carries a comment headed **Terraform plan: dev** with three
+rows:
+
+| | Action | Resource |
+|---|---|---|
+| 🟢 | create | `jamfplatform_pro_category.main["network"]` |
+| 🟡 | update | `jamfplatform_pro_policy.flush_dns_cache` |
+| 🟡 | update | `jamfplatform_pro_script.flush_dns_cache` |
+
+Three lines of code changed three objects in Jamf, and the plan lists each
+one before anything happens. Expand **Show the full diff** to see
+`category_id` change to `(known after apply)`: Terraform fills in the new
+category's ID once Jamf assigns it.
+
+A reviewer reads the code change and the plan side by side. Each push to the
+branch replaces the comment with a fresh plan.
 
 Merge:
 
@@ -512,52 +538,16 @@ visible in the pull request.
 
 The merge starts **Deploy**. Once it finishes, the pull request gains a second
 comment: ✅ Applied to **dev**. The pull request now records the change, its
-review, its plan and its outcome.
+review, its plan and its outcome. Check the Jamf UI: the Network category
+exists, and the script and the policy sit in it.
 
 ---
 
 ## 7. Revert a change
 
-Make a change you will regret. On a new branch, open
-`support_files/macos_configuration_profiles/login_window_banner.mobileconfig`
-and change the banner text:
-
-```bash
-git switch -c change-banner
-```
-
-```xml
-<string>This computer belongs to Pretend Co. Have a nice day.</string>
-```
-
-```bash
-git commit -am "Change login window banner"
-```
-
-```bash
-git push -u origin change-banner
-```
-
-```bash
-gh pr create --fill
-```
-
-Wait for the plan, merge, and let **Deploy** apply it:
-
-```bash
-gh pr merge --squash --delete-branch
-```
-
-```bash
-git switch main
-```
-
-```bash
-git pull
-```
-
-The security team objects. Revert the pull request that made the change. List
-the latest merged pull requests to find its number:
+The team decides the DNS tools belong in Maintenance after all. Revert the
+pull request from section 6. List the latest merged pull requests to find its
+number:
 
 ```bash
 gh pr list --state merged --limit 3
@@ -572,13 +562,24 @@ opens a new pull request for it. The **Revert** button at the bottom of a
 merged pull request on GitHub does the same.
 
 The command prints the address of the new pull request. Open it and read the
-plan comment, which shows the banner text returning to its previous value:
+plan comment:
 
 ```bash
 gh pr view <revert-number> --web
 ```
 
-Merge it, and **Deploy** restores the profile:
+The plan is the mirror of the one in section 6:
+
+| | Action | Resource |
+|---|---|---|
+| 🔴 | destroy | `jamfplatform_pro_category.main["network"]` |
+| 🟡 | update | `jamfplatform_pro_policy.flush_dns_cache` |
+| 🟡 | update | `jamfplatform_pro_script.flush_dns_cache` |
+
+One command undoes all three changes. The script and the policy return to
+Maintenance, and the category you created goes.
+
+Merge it, and **Deploy** puts Jamf back as it was:
 
 ```bash
 gh pr merge <revert-number> --squash --delete-branch
@@ -593,14 +594,10 @@ git pull
 - A revert is a new commit that undoes an old one. History keeps both, so the
   record shows the change and its withdrawal.
 - The revert passes through the same checks and plan as any change. Read its
-  plan: Terraform restores configuration, and anything the original change
-  deleted returns as a new object with a new ID.
-- Squash merging makes this simple. Each pull request is one commit on `main`,
-  so reverting the pull request undoes the whole change.
+  plan. Reverting a change that deleted an object creates a new object with a
+  new ID.
 - A plan can pass and the apply still fail, because the Jamf API enforces
-  rules that surface only when it receives the change. Terraform does not roll
-  back: objects that changed before the error keep their new values. The pull
-  request gains a comment that quotes the error. Revert the change as above,
+  rules a plan cannot check. Terraform does not roll back. Revert the change,
   or correct it in a new pull request. See
   [Recover from a failed apply](runbooks/recover-from-a-failed-apply.md).
 
