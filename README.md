@@ -71,11 +71,27 @@ Azure Pipelines or Bitbucket Pipelines.
 - A Jamf sandbox tenant. **Do not use production**
 - The tools from the first session: git, Terraform >= 1.14.0, VS Code with the
   HashiCorp Terraform extension
-- A GitHub account and the GitHub CLI (see below)
-- A Neon account (see below)
+- A GitHub account, working knowledge of GitHub, and the GitHub CLI (see below)
+- A Neon account, signed up with your GitHub account (see below)
 - Platform API credentials with the permissions below
 
-### 4.1 Install the GitHub CLI
+### 4.1 Learn the GitHub basics
+
+The session assumes you can create a branch, commit, open a pull request and
+merge it. If any of those is new to you, complete these free
+[GitHub Skills](https://learn.github.com/skills) courses first. Each runs in
+your own GitHub account.
+
+| Course | Covers | Time | Take it if |
+| --- | --- | --- | --- |
+| [Introduction to GitHub](https://github.com/skills/introduction-to-github) | Repositories, branches, commits, pull requests, merging | Under 1 hour | You have not merged a pull request before. Required. |
+| [Introduction to Git](https://github.com/skills/introduction-to-git) | Commits, branches and history from the command line and VS Code | Under 1 hour | You have not committed and pushed from a terminal before |
+| [Hello GitHub Actions](https://github.com/skills/hello-github-actions) | Creating and running a workflow | Under 30 minutes | You want to read the pipeline files with more confidence |
+
+### 4.2 Install the GitHub CLI
+
+The session creates the repository, its secrets and its pull requests from the
+terminal, and reads plans and results in the browser.
 
 ```bash
 brew install gh
@@ -87,16 +103,26 @@ gh auth login
 
 Choose **GitHub.com**, **HTTPS** and **Login with a web browser**.
 
-### 4.2 Create a Neon account
+### 4.3 Create a Neon account
 
-Sign in at [console.neon.tech](https://console.neon.tech) with your GitHub
-account. Neon creates a project and a database named `neondb` for you. The free
-plan covers this session.
+[Neon](https://neon.com) hosts PostgreSQL. Its free plan covers this session.
+Neon stands in for the backend your organisation will choose, and section 13
+covers the swap to another one.
 
-Neon stands in for the backend your organisation will choose. Section 13 covers
-the swap to another one.
+1. Open [console.neon.tech/signup](https://console.neon.tech/signup).
+2. Choose GitHub as the sign-in method and authorise Neon when GitHub asks.
+   Signing in with GitHub means no extra password to manage.
+3. If Neon walks you through creating a first project, use the values in
+   step 5.
+4. Otherwise, on the **Projects** page, click **New project**.
+5. Enter a **Project name** such as `jamf-iac`. Pick the **Region** nearest to
+   you. Under **Services**, leave **Postgres database** on and the rest off.
+6. Click **Create project**.
 
-### 4.3 Create Platform API credentials
+Neon creates a database named `neondb` on a branch named `production`. You
+collect its connection string in section 5.4.
+
+### 4.4 Create Platform API credentials
 
 Create an integration at [account.jamf.com](https://account.jamf.com) the way
 you did in the first session: **Integrations**, **Create integration**, level
@@ -187,8 +213,15 @@ export JAMFPLATFORM_CLIENT_ID JAMFPLATFORM_CLIENT_SECRET
 
 ### 5.4 Connect the remote state
 
-In the Neon console, open your project and click **Connect**. Turn the
-**Connection pooling** toggle off, then click **Copy snippet**.
+1. In the [Neon console](https://console.neon.tech), open your project.
+2. Click **Connect** at the top of the left sidebar. The **Connect to your
+   branch** dialog opens on the **Postgres database** tab.
+3. Check that **Database** shows `neondb` and the box below is labelled
+   **Connection string**.
+4. Turn the **Connection pooling** toggle off. The hostname in the box loses
+   its `-pooler` suffix.
+5. Click **Copy snippet**. The copied string includes the password that the
+   dialog masks.
 
 Terraform locks state with a lock that lives as long as its database
 connection. A pooler shares connections between clients, so a pooled
@@ -768,8 +801,8 @@ production tenant in `environments/prod.tfvars`.
 
 | GitHub environment | Used by | Credentials | Protection |
 | --- | --- | --- | --- |
-| `prod-plan` | Plans on pull requests, the preview before approval, drift detection | An integration with the Read action of each permission in section 4.3 and no other action | None |
-| `prod` | The apply | An integration with the permissions from section 4.3 | Required reviewers |
+| `prod-plan` | Plans on pull requests, the preview before approval, drift detection | An integration with the Read action of each permission in section 4.4 and no other action | None |
+| `prod` | The apply | An integration with the permissions from section 4.4 | Required reviewers |
 
 Two environments keep the write credentials behind the approval. A plan on a
 pull request runs code nobody has reviewed yet, so it gets credentials that can
